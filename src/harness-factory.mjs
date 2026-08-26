@@ -186,6 +186,30 @@ const RESEARCH_PLAN_ITEM_KEYS = objectFreeze([
   'target',
   'validationArchive'
 ]);
+const RESEARCH_PLAN_EXECUTION_OPTIONS_KEYS = objectFreeze([
+  'agentContext',
+  'agentGoal',
+  'agentReproduction',
+  'archive',
+  'baselineGeneration',
+  'campaign',
+  'candidate',
+  'cases',
+  'goal',
+  'holdoutCases',
+  'holdoutProductionBudget',
+  'holdoutResearchBudget',
+  'holdoutSkepticBudget',
+  'levelId',
+  'maxMemoryEntries',
+  'memoryQuery',
+  'plannerCandidates',
+  'points',
+  'productionBudget',
+  'researchBudget',
+  'skepticBudget',
+  'toolRegistry'
+]);
 const IMPROVEMENT_OPTIONS_KEYS = objectFreeze([
   'goal',
   'plannerCandidates',
@@ -296,6 +320,8 @@ const TRUSTED_HARNESS_FACTORY_RECOMMENDATION_FACTORIES = weakMapCreate();
 const TRUSTED_HARNESS_FACTORY_RESEARCH_AGENDAS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_RESEARCH_AGENDA_ITEM_FACTORIES = weakMapCreate();
 const TRUSTED_HARNESS_FACTORY_RESEARCH_PLANS = weakSetCreate();
+const TRUSTED_HARNESS_FACTORY_RESEARCH_PLAN_ITEMS = weakSetCreate();
+const TRUSTED_HARNESS_FACTORY_RESEARCH_PLAN_ITEM_FACTORIES = weakMapCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARKS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGNS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_FACTORIES = weakMapCreate();
@@ -5409,6 +5435,14 @@ export class HarnessFactoryResearchPlanReport {
         expectedEvidence: objectFreeze(arraySlice(plan.expectedEvidence))
       })
     ));
+    arrayForEach(this.plans, (plan) => {
+      weakSetAdd(TRUSTED_HARNESS_FACTORY_RESEARCH_PLAN_ITEMS, plan);
+      weakMapSet(
+        TRUSTED_HARNESS_FACTORY_RESEARCH_PLAN_ITEM_FACTORIES,
+        plan,
+        factory
+      );
+    });
     this.dataOnly = true;
     this.authorityTransferred = false;
     weakSetAdd(TRUSTED_HARNESS_FACTORY_RESEARCH_PLANS, this);
@@ -5421,6 +5455,15 @@ export function isTrustedHarnessFactoryResearchPlanReport(report) {
     && report !== null
     && weakSetHas(TRUSTED_HARNESS_FACTORY_RESEARCH_PLANS, report)
     && objectGetPrototypeOf(report) === HarnessFactoryResearchPlanReport.prototype;
+}
+
+function isTrustedHarnessFactoryResearchPlanItem(item, factory) {
+  return isPlainObject(item)
+    && weakSetHas(TRUSTED_HARNESS_FACTORY_RESEARCH_PLAN_ITEMS, item)
+    && weakMapGet(
+      TRUSTED_HARNESS_FACTORY_RESEARCH_PLAN_ITEM_FACTORIES,
+      item
+    ) === factory;
 }
 
 function isTrustedHarnessFactoryResearchAgendaItem(item, factory) {
@@ -8061,6 +8104,78 @@ export class HarnessFactory {
       factory: this,
       agenda: this.researchAgenda(options)
     });
+  }
+
+  executeResearchPlan(plan, options = {}) {
+    requireDataObject(
+      options,
+      'Harness Factory research plan execution options',
+      RESEARCH_PLAN_EXECUTION_OPTIONS_KEYS
+    );
+    if (!isTrustedHarnessFactory(this)) {
+      throw new TypeError('Harness Factory requires an exact trusted factory');
+    }
+    if (!isTrustedHarnessFactoryResearchPlanItem(plan, this)) {
+      throw new TypeError(
+        'Harness Factory research plan execution requires an exact plan from this factory'
+      );
+    }
+    const currentPlan = this.researchPlan();
+    const currentPlanItem = arrayFind(
+      currentPlan.plans,
+      ({ id }) => id === plan.id
+    );
+    if (
+      currentPlanItem === undefined
+      || jsonStringify(currentPlanItem) !== jsonStringify(plan)
+    ) {
+      throw new Error('Harness Factory research plan is stale');
+    }
+    const currentAgenda = this.researchAgenda();
+    const target = arrayFind(
+      currentAgenda.items,
+      ({ id }) => id === plan.agendaItemId
+    );
+    if (target === undefined) {
+      throw new Error('Harness Factory research plan agenda item is stale');
+    }
+    if (plan.bridge === HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.FACTORY_RECOMMENDATION) {
+      const recommendation = this.recommend();
+      const expectedStatus = plan.target === HARNESS_FACTORY_RESEARCH_TARGETS.RECOVER_FAILED_HOLDOUT
+        ? HARNESS_FACTORY_RECOMMENDATION_STATUSES.RECOVER_FAILED_HOLDOUT
+        : HARNESS_FACTORY_RECOMMENDATION_STATUSES.IMPROVE_LATEST_GENERATION;
+      if (recommendation.status !== expectedStatus) {
+        throw new Error('Harness Factory research plan recommendation is stale');
+      }
+      return this.executeRecommendation(recommendation, options);
+    }
+    if (plan.bridge === HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.HOLDOUT_VALIDATION) {
+      const recommendation = this.recommend();
+      if (
+        recommendation.status
+          !== HARNESS_FACTORY_RECOMMENDATION_STATUSES.VALIDATE_LATEST_HOLDOUT
+      ) {
+        throw new Error('Harness Factory research plan holdout recommendation is stale');
+      }
+      const validation = this.validateRecommendation(recommendation, options);
+      return this.archiveValidation(validation);
+    }
+    if (
+      plan.bridge === HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.BENCHMARK_VALIDATION
+    ) {
+      return this.executeBenchmarkValidationResearch(target, options);
+    }
+    if (
+      plan.bridge === HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.BENCHMARK_FRONTIER_VALIDATION
+    ) {
+      return this.executeBenchmarkFrontierValidationResearch(target, options);
+    }
+    if (plan.bridge === HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.FRONTIER_STABILITY) {
+      return this.executeBenchmarkFrontierValidationStabilityResearch(target, options);
+    }
+    throw new Error(
+      'Harness Factory research plan requires an operator-supplied experiment for this target'
+    );
   }
 
   executeBenchmarkValidationResearch(target, options = {}) {

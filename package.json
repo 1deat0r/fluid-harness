@@ -200,6 +200,8 @@
     "harness-factory-research-agenda-boundary": "node scripts/check-harness-factory-research-agenda-boundary.mjs",
     "harness-factory-research-plan": "node scripts/check-harness-factory-research-plan.mjs",
     "harness-factory-research-plan-boundary": "node scripts/check-harness-factory-research-plan-boundary.mjs",
+    "harness-factory-research-plan-execution": "node scripts/check-harness-factory-research-plan-execution.mjs",
+    "harness-factory-research-plan-execution-boundary": "node scripts/check-harness-factory-research-plan-execution-boundary.mjs",
     "harness-factory-benchmark": "node scripts/check-harness-factory-benchmark.mjs",
     "harness-factory-benchmark-boundary": "node scripts/check-harness-factory-benchmark-boundary.mjs",
     "harness-factory-benchmark-campaign": "node scripts/check-harness-factory-benchmark-campaign.mjs",

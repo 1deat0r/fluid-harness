@@ -4,7 +4,7 @@
 ## Public status
 
 - Package version: 0.1.0
-- Acceptance ledger: 480/480 gates marked met in [GATES.md](GATES.md).
+- Acceptance ledger: 482/482 gates marked met in [GATES.md](GATES.md).
 - Scope: bounded architecture discovery, evaluation, archival, research, and improvement; no automatic deployment or artificial-superintelligence claim.
 - Generated detail: [docs/STATUS.md](docs/STATUS.md).
 
@@ -600,6 +600,8 @@ The `HarnessFactory` façade is the first lifecycle-level assembly line over tho
 `factory.researchAgenda()` is the broader factory research queue. It derives a capped, ranked list from the same verified archives: unresolved holdout recovery, unseen validation, skeptic weaknesses, transfer gaps, and strict improvement. Each item carries only a generation/archive locator, benchmark identity, measured fitness, holdout status, and plain-language reason. The agenda is an experiment backlog, not an executor: it does not invent executable code, run candidates, mutate history, or transfer authority.
 
 `factory.researchPlan()` turns that ranked agenda into a frozen, data-only experiment plan. Each plan names the bounded bridge that applies (`FACTORY_RECOMMENDATION`, `HOLDOUT_VALIDATION`, benchmark/frontier validation, frontier stability, or operator experiment), the method an operator can call, the required fresh inputs, and the evidence the experiment should produce. It is a planning handoff only: it does not run candidates, restore runtime artifacts, mutate the ledger, or grant execution authority.
+
+`factory.executeResearchPlan(planItem, options)` is the bounded dispatcher for executable plan items. It rechecks that the exact plan is current, then routes recommendation, holdout, benchmark-validation, frontier-completion, or frontier-stability work through the corresponding existing bridge with the caller's fresh inputs. Operator-only experiment plans fail closed with an explicit handoff requirement; stale, foreign, forged, mutable, or accessor-bearing plans cannot mutate the ledger. The dispatcher still never restores a candidate, adopts an architecture by itself, deploys anything, or transfers authority.
 
 `factory.benchmark({ candidate, cases, levels })` is the factory’s bounded architecture benchmarker. It evaluates a fresh candidate at finite budget levels, independently replays each level with fresh search runners, rejects definition drift between levels, and returns summary metrics plus a compute/fitness Pareto frontier. The candidate, search reports, runners, and action evidence remain private; the benchmark does not adopt, deploy, or archive the candidate.
 
