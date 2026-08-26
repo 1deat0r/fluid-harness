@@ -98,6 +98,7 @@ export const HARNESS_FACTORY_RECOMMENDATION_STATUSES = objectFreeze({
   VALIDATE_LATEST_HOLDOUT: 'VALIDATE_LATEST_HOLDOUT'
 });
 export const HARNESS_FACTORY_RESEARCH_TARGETS = objectFreeze({
+  COMPLETE_BENCHMARK_FRONTIER_VALIDATION: 'COMPLETE_BENCHMARK_FRONTIER_VALIDATION',
   IMPROVE_LATEST_GENERATION: 'IMPROVE_LATEST_GENERATION',
   INVESTIGATE_BENCHMARK_VALIDATION: 'INVESTIGATE_BENCHMARK_VALIDATION',
   INVESTIGATE_SKEPTIC_WEAKNESS: 'INVESTIGATE_SKEPTIC_WEAKNESS',
@@ -106,6 +107,7 @@ export const HARNESS_FACTORY_RESEARCH_TARGETS = objectFreeze({
   VALIDATE_UNSEEN_HOLDOUT: 'VALIDATE_UNSEEN_HOLDOUT'
 });
 const HARNESS_FACTORY_RESEARCH_TARGET_VALUES = objectFreeze([
+  HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION,
   HARNESS_FACTORY_RESEARCH_TARGETS.IMPROVE_LATEST_GENERATION,
   HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_VALIDATION,
   HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_SKEPTIC_WEAKNESS,
@@ -967,6 +969,7 @@ function factoryRecommendationFromHistory({ factory, history, validations = [] }
 }
 
 const HARNESS_FACTORY_RESEARCH_TARGET_PRIORITIES = objectFreeze({
+  [HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION]: 460,
   [HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_VALIDATION]: 450,
   [HARNESS_FACTORY_RESEARCH_TARGETS.RECOVER_FAILED_HOLDOUT]: 400,
   [HARNESS_FACTORY_RESEARCH_TARGETS.VALIDATE_UNSEEN_HOLDOUT]: 300,
@@ -1182,11 +1185,206 @@ function isValidHarnessFactoryBenchmarkValidationResearchAgendaItem(item, factor
     );
 }
 
+function factoryBenchmarkFrontierValidationResearchAgendaItem({
+  factory,
+  score,
+  reason
+}) {
+  const missingPoints = objectFreeze(arrayMap(
+    score.missingPoints,
+    ({ candidateId, levelId }) => objectFreeze({ candidateId, levelId })
+  ));
+  const frontierValidation = objectFreeze({
+    campaignArchive: score.campaignArchive,
+    frontierCount: score.frontierCount,
+    validationCount: score.validationCount,
+    coveredCount: score.coveredCount,
+    frontierCoverageRate: score.frontierCoverageRate,
+    missingPoints,
+    duplicateValidationCount: score.duplicateValidationCount,
+    passedCount: score.passedCount,
+    failedCount: score.failedCount,
+    passRate: score.passRate,
+    complete: score.complete,
+    reproducible: score.reproducible,
+    independent: score.independent,
+    status: score.status,
+    firstValidationArchive: score.firstValidationArchive,
+    latestValidationArchive: score.latestValidationArchive,
+    dataOnly: true,
+    authorityTransferred: false
+  });
+  const benchmark = objectFreeze({
+    campaignArchive: score.campaignArchive,
+    frontierCount: score.frontierCount,
+    coveredCount: score.coveredCount,
+    missingPoints
+  });
+  return objectFreeze({
+    id: `harness-factory-research:${HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION}:${score.campaignArchive.sequence}`,
+    factoryId: factory.factoryId,
+    target: HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION,
+    priority: HARNESS_FACTORY_RESEARCH_TARGET_PRIORITIES[
+      HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION
+    ],
+    generation: null,
+    archive: score.latestValidationArchive,
+    validationArchive: score.latestValidationArchive,
+    benchmark,
+    frontierValidation,
+    holdoutStatus: score.status,
+    fitness: objectFreeze({
+      frontierCoverageRate: score.frontierCoverageRate,
+      passRate: score.passRate
+    }),
+    reason: requireNonEmptyString(
+      reason,
+      'Harness Factory frontier validation research agenda reason'
+    ),
+    dataOnly: true,
+    authorityTransferred: false
+  });
+}
+
+function isValidHarnessFactoryBenchmarkFrontierValidationResearchAgendaItem(item, factory) {
+  const benchmark = item?.benchmark;
+  const detail = item?.frontierValidation;
+  const missingPoints = detail?.missingPoints;
+  const missingPointKeys = arrayIsArray(missingPoints)
+    ? arrayMap(
+      missingPoints,
+      (point) => `${point?.candidateId}\u0000${point?.levelId}`
+    )
+    : [];
+  const expectedStatus = detail?.coveredCount < detail?.frontierCount
+    ? HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE
+    : detail?.passedCount === detail?.coveredCount
+      && detail?.complete === true
+      && detail?.reproducible === true
+      && detail?.independent === true
+      ? HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.PASSED
+      : HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.FAILED;
+  const validLocator = (locator, kind, minimumSequence = 0) => isPlainObject(locator)
+    && reflectOwnKeys(locator).length === 3
+    && locator.kind === kind
+    && isSafeInteger(locator.sequence)
+    && locator.sequence > minimumSequence
+    && typeof locator.hash === 'string'
+    && stringTrim(locator.hash) !== '';
+  const forbiddenKeys = [
+    'candidate',
+    'candidates',
+    'campaign',
+    'holdout',
+    'runner',
+    'actionReport',
+    'validations'
+  ];
+  return isPlainObject(item)
+    && item.factoryId === factory.factoryId
+    && item.target === HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION
+    && item.priority === HARNESS_FACTORY_RESEARCH_TARGET_PRIORITIES[
+      HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION
+    ]
+    && item.generation === null
+    && validLocator(item.archive, 'harness-factory-benchmark-validation')
+    && sameArchiveLocator(item.archive, item.validationArchive)
+    && isPlainObject(benchmark)
+    && sameArchiveLocator(benchmark.campaignArchive, detail?.campaignArchive)
+    && benchmark.frontierCount === detail?.frontierCount
+    && benchmark.coveredCount === detail?.coveredCount
+    && jsonStringify(benchmark.missingPoints) === jsonStringify(missingPoints)
+    && isPlainObject(detail)
+    && validLocator(
+      detail.campaignArchive,
+      'harness-factory-benchmark-campaign'
+    )
+    && isSafeInteger(detail.frontierCount)
+    && detail.frontierCount > 0
+    && isSafeInteger(detail.validationCount)
+    && detail.validationCount > 0
+    && isSafeInteger(detail.coveredCount)
+    && detail.coveredCount > 0
+    && detail.coveredCount <= detail.frontierCount
+    && isFiniteNumber(detail.frontierCoverageRate)
+    && detail.frontierCoverageRate >= 0
+    && detail.frontierCoverageRate <= 1
+    && detail.frontierCoverageRate === detail.coveredCount / detail.frontierCount
+    && arrayIsArray(missingPoints)
+    && missingPoints.length === detail.frontierCount - detail.coveredCount
+    && setSize(setFromArray(missingPointKeys)) === missingPointKeys.length
+    && arrayEvery(
+      missingPoints,
+      (point) => isPlainObject(point)
+        && reflectOwnKeys(point).length === 2
+        && typeof point.candidateId === 'string'
+        && stringTrim(point.candidateId) !== ''
+        && typeof point.levelId === 'string'
+        && stringTrim(point.levelId) !== ''
+    )
+    && isSafeInteger(detail.duplicateValidationCount)
+    && detail.duplicateValidationCount >= 0
+    && detail.duplicateValidationCount
+      === detail.validationCount - detail.coveredCount
+    && isSafeInteger(detail.passedCount)
+    && detail.passedCount >= 0
+    && detail.passedCount <= detail.coveredCount
+    && isSafeInteger(detail.failedCount)
+    && detail.failedCount >= 0
+    && detail.failedCount <= detail.coveredCount
+    && detail.passedCount + detail.failedCount === detail.coveredCount
+    && isFiniteNumber(detail.passRate)
+    && detail.passRate >= 0
+    && detail.passRate <= 1
+    && detail.passRate === detail.passedCount / detail.coveredCount
+    && typeof detail.complete === 'boolean'
+    && typeof detail.reproducible === 'boolean'
+    && typeof detail.independent === 'boolean'
+    && (!detail.complete || detail.coveredCount === detail.frontierCount)
+    && (!detail.reproducible || detail.complete)
+    && (!detail.independent || detail.complete)
+    && detail.status === expectedStatus
+    && validLocator(
+      detail.firstValidationArchive,
+      'harness-factory-benchmark-validation',
+      detail.campaignArchive.sequence
+    )
+    && validLocator(
+      detail.latestValidationArchive,
+      'harness-factory-benchmark-validation',
+      detail.firstValidationArchive.sequence - 1
+    )
+    && detail.latestValidationArchive.sequence >= detail.firstValidationArchive.sequence
+    && item.holdoutStatus === detail.status
+    && isPlainObject(item.fitness)
+    && reflectOwnKeys(item.fitness).length === 2
+    && item.fitness.frontierCoverageRate === detail.frontierCoverageRate
+    && item.fitness.passRate === detail.passRate
+    && typeof item.reason === 'string'
+    && stringTrim(item.reason) !== ''
+    && item.dataOnly === true
+    && item.authorityTransferred === false
+    && detail.dataOnly === true
+    && detail.authorityTransferred === false
+    && !arraySome(
+      forbiddenKeys,
+      (key) => arrayIncludes(reflectOwnKeys(item), key)
+        || arrayIncludes(reflectOwnKeys(benchmark), key)
+        || arrayIncludes(reflectOwnKeys(detail), key)
+        || arrayIncludes(reflectOwnKeys(item.fitness), key)
+        || arraySome(
+          missingPoints,
+          (point) => arrayIncludes(reflectOwnKeys(point), key)
+        )
+    );
+}
+
 function factoryResearchAgendaFromHistory({
   factory,
   history,
   validations,
   benchmarkValidations = [],
+  benchmarkFrontierValidationScorecard = null,
   maxItems
 }) {
   if (!isTrustedHarnessFactory(factory)) {
@@ -1201,6 +1399,19 @@ function factoryResearchAgendaFromHistory({
   if (!arrayIsArray(benchmarkValidations)) {
     throw new TypeError(
       'Harness Factory research agenda requires verified benchmark validations'
+    );
+  }
+  if (
+    benchmarkFrontierValidationScorecard !== null
+    && (
+      !isTrustedHarnessFactoryBenchmarkFrontierValidationScorecardReport(
+        benchmarkFrontierValidationScorecard
+      )
+      || benchmarkFrontierValidationScorecard.factoryId !== factory.factoryId
+    )
+  ) {
+    throw new TypeError(
+      'Harness Factory research agenda requires verified frontier validation scorecard'
     );
   }
   if (!isSafeInteger(maxItems) || maxItems <= 0) {
@@ -1221,6 +1432,28 @@ function factoryResearchAgendaFromHistory({
       reason
     }));
   };
+
+  if (benchmarkFrontierValidationScorecard !== null) {
+    arrayForEach(
+      benchmarkFrontierValidationScorecard.batchScores,
+      (score) => {
+        if (
+          score.status
+            !== HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE
+        ) {
+          return;
+        }
+        arrayPush(
+          proposed,
+          factoryBenchmarkFrontierValidationResearchAgendaItem({
+            factory,
+            score,
+            reason: 'an incomplete frontier needs fresh validation for every missing point'
+          })
+        );
+      }
+    );
+  }
 
   arrayForEach(benchmarkValidations, (validation, index) => {
     if (
@@ -3592,12 +3825,18 @@ export class HarnessFactoryResearchAgendaReport {
           || (
             item.target === HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_VALIDATION
               ? !isValidHarnessFactoryBenchmarkValidationResearchAgendaItem(item, factory)
-              : !isSafeInteger(item.generation)
-                || item.generation <= 0
-                || !isPlainObject(item.archive)
-                || item.archive.kind !== 'architecture-discovery'
-                || !isSafeInteger(item.archive.sequence)
-                || item.archive.sequence <= 0
+              : item.target
+                === HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION
+                ? !isValidHarnessFactoryBenchmarkFrontierValidationResearchAgendaItem(
+                  item,
+                  factory
+                )
+                : !isSafeInteger(item.generation)
+                  || item.generation <= 0
+                  || !isPlainObject(item.archive)
+                  || item.archive.kind !== 'architecture-discovery'
+                  || !isSafeInteger(item.archive.sequence)
+                  || item.archive.sequence <= 0
           )
           || item.dataOnly !== true
           || item.authorityTransferred !== false
@@ -5341,11 +5580,17 @@ export class HarnessFactory {
     const history = factoryHistoryFromLedger(historicalLedger, this.factoryId);
     const validations = historicalLedger.restoreHarnessFactoryValidations();
     const benchmarkValidations = historicalLedger.restoreHarnessFactoryBenchmarkValidations();
+    const benchmarkFrontierValidationScorecard =
+      factoryBenchmarkFrontierValidationScorecardFromLedger(
+        historicalLedger,
+        this
+      );
     return factoryResearchAgendaFromHistory({
       factory: this,
       history,
       validations,
       benchmarkValidations,
+      benchmarkFrontierValidationScorecard,
       maxItems
     });
   }

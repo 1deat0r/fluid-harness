@@ -92,40 +92,49 @@ assert.equal(Object.isFrozen(agenda), true);
 assert.equal(Object.isFrozen(agenda.items), true);
 assert.equal(agenda.consideredGenerationCount, 1);
 assert.equal(agenda.consideredValidationCount, 1);
-assert.equal(agenda.consideredTargetCount, 3);
-assert.equal(agenda.returnedItemCount, 3);
+assert.equal(agenda.consideredTargetCount, 4);
+assert.equal(agenda.returnedItemCount, 4);
 assert.equal(agenda.truncated, false);
 assert.equal(agenda.complete, true);
 assert.equal(
   agenda.items[0].target,
-  HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_VALIDATION
+  HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION
 );
-assert.equal(agenda.items[0].priority, 450);
+assert.equal(agenda.items[0].priority, 460);
 assert.equal(agenda.items[0].rank, 1);
 assert.equal(agenda.items[0].generation, null);
-assert.equal(agenda.items[0].archive.kind, 'harness-factory-benchmark-validation');
-assert.equal(agenda.items[0].archive.sequence, archivedValidation.archive.sequence);
-assert.deepEqual(agenda.items[0].validationArchive, archivedValidation.archive);
-assert.equal(agenda.items[0].holdoutStatus, 'FAILED');
-assert.equal(agenda.items[0].benchmarkValidation.candidateId, firstCandidate.id);
-assert.equal(agenda.items[0].benchmarkValidation.levelId, 'benchmark-validation-research-agenda-budget');
+assert.equal(agenda.items[0].frontierValidation.status, 'INCOMPLETE');
+assert.equal(agenda.items[0].frontierValidation.missingPoints.length, 1);
+assert.equal(
+  agenda.items[1].target,
+  HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_VALIDATION
+);
+assert.equal(agenda.items[1].priority, 450);
+assert.equal(agenda.items[1].rank, 2);
+assert.equal(agenda.items[1].generation, null);
+assert.equal(agenda.items[1].archive.kind, 'harness-factory-benchmark-validation');
+assert.equal(agenda.items[1].archive.sequence, archivedValidation.archive.sequence);
+assert.deepEqual(agenda.items[1].validationArchive, archivedValidation.archive);
+assert.equal(agenda.items[1].holdoutStatus, 'FAILED');
+assert.equal(agenda.items[1].benchmarkValidation.candidateId, firstCandidate.id);
+assert.equal(agenda.items[1].benchmarkValidation.levelId, 'benchmark-validation-research-agenda-budget');
 assert.deepEqual(
-  agenda.items[0].benchmarkValidation.campaignArchive,
+  agenda.items[1].benchmarkValidation.campaignArchive,
   archivedCampaign.archive
 );
-assert.equal(agenda.items[0].benchmarkValidation.status, 'FAILED');
-assert.equal(agenda.items[0].benchmarkValidation.passed, false);
-assert.equal(Object.isFrozen(agenda.items[0]), true);
-assert.equal(Object.isFrozen(agenda.items[0].benchmarkValidation), true);
-assert.equal(Object.isFrozen(agenda.items[0].benchmarkValidation.holdout), true);
-assert.equal(Object.hasOwn(agenda.items[0], 'candidate'), false);
-assert.equal(Object.hasOwn(agenda.items[0], 'runner'), false);
-assert.equal(Object.hasOwn(agenda.items[0].benchmarkValidation, 'candidate'), false);
-assert.equal(Object.hasOwn(agenda.items[0].benchmarkValidation, 'actionReport'), false);
-assert.equal(agenda.items[1].target, HARNESS_FACTORY_RESEARCH_TARGETS.VALIDATE_UNSEEN_HOLDOUT);
-assert.equal(agenda.items[1].rank, 2);
-assert.equal(agenda.items[2].target, HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_SKEPTIC_WEAKNESS);
+assert.equal(agenda.items[1].benchmarkValidation.status, 'FAILED');
+assert.equal(agenda.items[1].benchmarkValidation.passed, false);
+assert.equal(Object.isFrozen(agenda.items[1]), true);
+assert.equal(Object.isFrozen(agenda.items[1].benchmarkValidation), true);
+assert.equal(Object.isFrozen(agenda.items[1].benchmarkValidation.holdout), true);
+assert.equal(Object.hasOwn(agenda.items[1], 'candidate'), false);
+assert.equal(Object.hasOwn(agenda.items[1], 'runner'), false);
+assert.equal(Object.hasOwn(agenda.items[1].benchmarkValidation, 'candidate'), false);
+assert.equal(Object.hasOwn(agenda.items[1].benchmarkValidation, 'actionReport'), false);
+assert.equal(agenda.items[2].target, HARNESS_FACTORY_RESEARCH_TARGETS.VALIDATE_UNSEEN_HOLDOUT);
 assert.equal(agenda.items[2].rank, 3);
+assert.equal(agenda.items[3].target, HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_SKEPTIC_WEAKNESS);
+assert.equal(agenda.items[3].rank, 4);
 assert.equal(agenda.dataOnly, true);
 assert.equal(agenda.authorityTransferred, false);
 assert.equal(fixture.ledger.serialize(), beforeAgenda);
@@ -134,6 +143,6 @@ console.log(
   `FLUID_HARNESS_FACTORY_BENCHMARK_VALIDATION_RESEARCH_AGENDA_OK `
   + `generations=${agenda.consideredGenerationCount} validations=${agenda.consideredValidationCount} `
   + `targets=${agenda.consideredTargetCount} primary=${agenda.items[0].target} `
-  + `validation=${agenda.items[0].holdoutStatus} ledgerUnchanged=${fixture.ledger.serialize() === beforeAgenda} `
+  + `validation=${agenda.items[1].holdoutStatus} ledgerUnchanged=${fixture.ledger.serialize() === beforeAgenda} `
   + `dataOnly=${agenda.dataOnly} authorityTransferred=${agenda.authorityTransferred}`
 );

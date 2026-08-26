@@ -109,12 +109,17 @@ const campaignOnlyAgenda = campaignOnlyFixture.factory.researchAgenda();
 assert.equal(campaignOnlyAgenda.recommendationStatus, 'NO_HISTORY');
 assert.equal(campaignOnlyAgenda.consideredGenerationCount, 0);
 assert.equal(campaignOnlyAgenda.consideredValidationCount, 1);
-assert.equal(campaignOnlyAgenda.returnedItemCount, 1);
+assert.equal(campaignOnlyAgenda.returnedItemCount, 2);
 assert.equal(
   campaignOnlyAgenda.items[0].target,
+  HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION
+);
+assert.equal(campaignOnlyAgenda.items[0].frontierValidation.status, 'INCOMPLETE');
+assert.equal(
+  campaignOnlyAgenda.items[1].target,
   HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_VALIDATION
 );
-assert.equal(campaignOnlyAgenda.items[0].generation, null);
+assert.equal(campaignOnlyAgenda.items[1].generation, null);
 assert.equal(campaignOnlyValidation.validation.status, 'FAILED');
 
 const fixture = buildHarnessFactoryFixture({
