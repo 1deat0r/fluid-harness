@@ -793,6 +793,19 @@ function harnessFactoryBenchmarkFrontierValidationStabilityMemoryEntries(
       group.pointGroups,
       ({ variableCount }) => variableCount > 0
     ).length;
+    const variablePointKeywords = arrayMap(
+      arraySort(
+        arrayFilter(
+          group.pointGroups,
+          ({ variableCount }) => variableCount > 0
+        ),
+        (left, right) => stringLocaleCompare(
+          `${left.candidateId}\u0000${left.levelId}`,
+          `${right.candidateId}\u0000${right.levelId}`
+        )
+      ),
+      ({ candidateId, levelId }) => `variable-point-${candidateId}-${levelId}`
+    );
     const keywords = [
       'harness-factory-benchmark-frontier-validation-stability',
       `frontier-stability-${stability}`,
@@ -807,6 +820,14 @@ function harnessFactoryBenchmarkFrontierValidationStabilityMemoryEntries(
       `independent-${group.independentCount}-of-${group.campaignCount}`,
       `variable-points-${variablePointCount}`
     ];
+    arrayForEach(variablePointKeywords, (keyword) => {
+      if (
+        keywords.length < MAX_STRUCTURED_MEMORY_KEYWORDS
+        && keyword.length <= MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH
+      ) {
+        arrayPush(keywords, keyword);
+      }
+    });
     const factoryKeyword = `factory-${group.factoryId}`;
     if (
       keywords.length < MAX_STRUCTURED_MEMORY_KEYWORDS

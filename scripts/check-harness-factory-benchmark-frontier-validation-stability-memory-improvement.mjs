@@ -87,7 +87,7 @@ const baseline = fixture.factory.manufacture({
 assert.equal(isTrustedHarnessFactoryReport(baseline), true);
 assert.equal(baseline.status, HARNESS_FACTORY_STATUSES.REJECTED);
 
-const repeatPrefix = 'harness-factory-benchmark-frontier-validation-stability-memory-repeat';
+const repeatPrefix = 'smr';
 const first = buildCampaign(fixture, repeatPrefix);
 const second = buildCampaign(fixture, repeatPrefix);
 archivePoint(fixture, first.campaign, first.alpha, fixture.plannerCandidate, first.level);
@@ -136,6 +136,12 @@ assert.equal(context.results[0].keywords.includes('complete-1-of-2'), true);
 assert.equal(context.results[0].keywords.includes('reproducible-1-of-2'), true);
 assert.equal(context.results[0].keywords.includes('independent-1-of-2'), true);
 assert.equal(context.results[0].keywords.includes('variable-points-1'), true);
+assert.equal(
+  context.results[0].keywords.includes(
+    'variable-point-smr-beta-smr-budget'
+  ),
+  true
+);
 assert.equal(
   context.results[0].keywords.includes(`factory-${fixture.factory.factoryId}`),
   true
@@ -207,6 +213,12 @@ assert.equal(
   false
 );
 assert.equal(stableContext.results[0].keywords.includes('variable-points-0'), true);
+assert.equal(
+  stableContext.results[0].keywords.includes(
+    'variable-point-smr-beta-smr-budget'
+  ),
+  false
+);
 assert.equal(
   stableContext.results[0].source,
   MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY
