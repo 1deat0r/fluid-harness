@@ -2378,3 +2378,13 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
   CHECK: node scripts/check-harness-factory-benchmark-frontier-validation-stability-memory-improvement-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_MEMORY_IMPROVEMENT_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_MEMORY_IMPROVEMENT_BOUNDARY_OK emptySuppressed=true accessorRejected=true capacityRejected=true unsupportedSourceRejected=true tamperedRejected=true ledgerUnchanged=true runtimeS
+
+- [x] G476: a stability research execution bridge rechecks exactly the diagnosed variable frontier points, archives fresh evidence, and reports recovery to stable without authority transfer
+  CHECK: node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-execution.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_EXECUTION_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_EXECUTION_OK variablePoints=1 validated=1 passed=1 frontierStatus=STABLE targetResolved=true ledgerEntries=6 dataOnly=true authorityTransferred=false
+
+- [x] G477: stability research execution rejects forged, proxied, accessor-bearing, foreign, stale, mismatched, disposed, mutable, and wrong-bridge requests without partial archive mutation
+  CHECK: node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-execution-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_EXECUTION_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_EXECUTION_BOUNDARY_OK forgedRejected=true proxiedRejected=true wrongBridgeRejected=true archiveBoundary=true pointsRejected=true accessorRejected=true candidateRejected=

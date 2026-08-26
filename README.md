@@ -4,7 +4,7 @@
 ## Public status
 
 - Package version: 0.1.0
-- Acceptance ledger: 475/475 gates marked met in [GATES.md](GATES.md).
+- Acceptance ledger: 477/477 gates marked met in [GATES.md](GATES.md).
 - Scope: bounded architecture discovery, evaluation, archival, research, and improvement; no automatic deployment or artificial-superintelligence claim.
 - Generated detail: [docs/STATUS.md](docs/STATUS.md).
 
@@ -361,6 +361,8 @@ node scripts/check-harness-factory-benchmark-frontier-validation-stability.mjs
 node scripts/check-harness-factory-benchmark-frontier-validation-stability-boundary.mjs
 node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-agenda.mjs
 node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-agenda-boundary.mjs
+node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-execution.mjs
+node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-execution-boundary.mjs
 node scripts/check-harness-factory-benchmark-frontier-validation-stability-memory-improvement.mjs
 node scripts/check-harness-factory-benchmark-frontier-validation-stability-memory-improvement-boundary.mjs
 node scripts/check-harness-factory-campaign-memory-improvement.mjs
@@ -623,6 +625,8 @@ Repeated equivalent frontiers also produce one bounded `MEMORY_SOURCES.HARNESS_F
 `factory.benchmarkFrontierValidationStability()` groups equivalent frontiers across separate archived campaigns. A frontier is `STABLE` only after at least two independent campaigns validate every point with passing, complete, reproducible evidence; one campaign is `INSUFFICIENT`, while any incomplete or failed campaign makes the repeated frontier `UNSTABLE`. Its point-level scores identify which candidate/level pairs are stable or variable across those campaigns, so an unstable frontier can be investigated without guessing. This is a longitudinal research signal, not a promotion or deployment decision.
 
 An `UNSTABLE` repeated frontier now becomes a high-priority `INVESTIGATE_BENCHMARK_FRONTIER_STABILITY` item in `factory.researchAgenda()`. It carries only the frontier identity, bounded campaign-level pass/fail/completeness evidence, and archive locators needed to investigate variance; completing the later campaign suppresses the instability item. The target is advisory and deliberately not executable by the frontier-validation bridge.
+
+`factory.executeBenchmarkFrontierValidationStabilityResearch(target, options)` is the bounded operator bridge for that instability target. The operator must supply the exact current agenda item, the latest matching archived campaign, and a fresh candidate reconstruction for every diagnosed variable point. The factory replays only those points with the original benchmark suite and a disjoint holdout, archives the new validations, and returns whether the repeated frontier recovered to `STABLE` plus any remaining variable points. It rejects forged, foreign, proxied, stale, mismatched, duplicate, disposed, mutable, or accessor-bearing requests; it never restores candidates, adopts an architecture, deploys anything, or transfers authority.
 
 An unresolved failed campaign validation now appears in `factory.researchAgenda()` as the highest-priority `INVESTIGATE_BENCHMARK_VALIDATION` target. The item carries only the candidate/level, benchmark identity, bounded replay and holdout evidence, and archive locators; a later pass for the same campaign frontier point suppresses the stale failure target. The agenda remains a research queue and does not execute or promote anything.
 
