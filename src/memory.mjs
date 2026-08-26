@@ -7,6 +7,7 @@ import { isTrustedEvidenceLedger } from './evidence-ledger.mjs';
 import { snapshotProcessData } from './process-boundary.mjs';
 import { SURPRISE_BANDS } from './world-model.mjs';
 import {
+  arrayEvery,
   arrayFilter,
   arrayFind,
   arrayForEach,
@@ -21,6 +22,7 @@ import {
   isInstanceOf,
   isPlainObject,
   isSafeInteger,
+  jsonStringify,
   objectFreeze,
   objectGetOwnPropertyDescriptor,
   objectGetPrototypeOf,
@@ -47,6 +49,7 @@ export const MEMORY_SOURCES = objectFreeze({
   ARCHITECTURE_DISCOVERY: 'ARCHITECTURE_DISCOVERY',
   HARNESS_FACTORY_BENCHMARK_CAMPAIGN: 'HARNESS_FACTORY_BENCHMARK_CAMPAIGN',
   HARNESS_FACTORY_BENCHMARK_VALIDATION: 'HARNESS_FACTORY_BENCHMARK_VALIDATION',
+  HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION: 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION',
   COORDINATION: 'COORDINATION',
   DISTRIBUTION_SHIFT: 'DISTRIBUTION_SHIFT',
   ENSEMBLE: 'ENSEMBLE',
@@ -441,6 +444,114 @@ function harnessFactoryBenchmarkValidationMemoryEntry(
     actionNumber: null,
     source: MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_VALIDATION,
     architectureId: validation.candidateId,
+    keywords,
+    provenance
+  });
+}
+
+function harnessFactoryBenchmarkFrontierValidationMemoryEntry(
+  campaign,
+  validations,
+  prefix,
+  index,
+  provenance
+) {
+  const campaignValidations = arrayFilter(
+    validations,
+    (validation) => validation.factoryId === campaign.factoryId
+      && isPlainObject(validation.campaignArchive)
+      && validation.campaignArchive.kind === campaign.archive.kind
+      && validation.campaignArchive.sequence === campaign.archive.sequence
+      && validation.campaignArchive.hash === campaign.archive.hash
+  );
+  if (campaignValidations.length === 0) {
+    return null;
+  }
+  const pointScores = [];
+  arrayForEach(campaignValidations, (validation) => {
+    const frontierPoint = arrayFind(
+      campaign.frontier,
+      (point) => point.architectureId === validation.candidateId
+        && point.levelId === validation.levelId
+    );
+    if (
+      frontierPoint === undefined
+      || validation.caseFingerprint !== campaign.caseFingerprint
+      || validation.caseIds.length !== campaign.caseIds.length
+      || !arrayEvery(
+        validation.caseIds,
+        (caseId, caseIndex) => caseId === campaign.caseIds[caseIndex]
+      )
+      || jsonStringify(frontierPoint) !== jsonStringify(validation.campaignPoint)
+    ) {
+      throw new Error(
+        'Structured memory found inconsistent Harness Factory frontier validation evidence'
+      );
+    }
+    let pointScore = arrayFind(
+      pointScores,
+      (candidatePoint) => candidatePoint.candidateId === validation.candidateId
+        && candidatePoint.levelId === validation.levelId
+    );
+    if (pointScore === undefined) {
+      pointScore = {
+        candidateId: validation.candidateId,
+        levelId: validation.levelId,
+        validationCount: 0,
+        latest: null
+      };
+      arrayPush(pointScores, pointScore);
+    }
+    pointScore.validationCount += 1;
+    pointScore.latest = validation;
+  });
+  const frontierCount = campaign.frontier.length;
+  const coveredCount = pointScores.length;
+  const validationCount = campaignValidations.length;
+  const passedCount = arrayFilter(
+    pointScores,
+    ({ latest }) => latest.passed === true
+  ).length;
+  const complete = coveredCount === frontierCount
+    && arrayEvery(pointScores, ({ latest }) => latest.complete === true);
+  const reproducible = coveredCount === frontierCount
+    && arrayEvery(pointScores, ({ latest }) => latest.reproducible === true);
+  const independent = coveredCount === frontierCount
+    && arrayEvery(pointScores, ({ latest }) => latest.independent === true);
+  const status = coveredCount < frontierCount
+    ? 'incomplete'
+    : passedCount === coveredCount && complete && reproducible && independent
+      ? 'passed'
+      : 'failed';
+  const keywords = [
+    'harness-factory-benchmark-frontier-validation',
+    `frontier-validation-${status}`,
+    `coverage-${coveredCount}-of-${frontierCount}`,
+    `validations-${validationCount}`,
+    `duplicates-${validationCount - coveredCount}`,
+    `passed-${passedCount}`,
+    `failed-${coveredCount - passedCount}`,
+    complete ? 'complete' : 'incomplete',
+    reproducible ? 'reproducible' : 'not-reproducible',
+    independent ? 'independent' : 'dependent'
+  ];
+  const factoryKeyword = `factory-${campaign.factoryId}`;
+  if (factoryKeyword.length <= MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH) {
+    arrayPush(keywords, factoryKeyword);
+  }
+  return new StructuredMemoryEntry({
+    id: `${prefix}:harness-factory-benchmark-frontier-validation:${index}`,
+    taskId: isSafeInteger(provenance?.sequence) && provenance.sequence > 0
+      ? `harness-factory-benchmark-frontier-validation:${provenance.sequence}`
+      : `harness-factory-benchmark-frontier-validation:${index}`,
+    description: `Historical Harness Factory frontier validation ${status} with ${coveredCount}/${frontierCount} points covered`,
+    strategyKey: 'harness-factory-benchmark-frontier-validation',
+    evidence: EVIDENCE_LEVELS.OBSERVED,
+    surpriseBand: SURPRISE_BANDS.LOW,
+    surpriseNats: 0,
+    predictionError: false,
+    actionNumber: null,
+    source: MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION,
     keywords,
     provenance
   });
@@ -933,6 +1044,36 @@ export class BoundedStructuredMemory {
       ledger,
       'harness-factory-benchmark-validation'
     );
+    const benchmarkFrontierValidationMemoryEntries = [];
+    arrayForEach(benchmarkCampaigns, (campaign, campaignIndex) => {
+      const relatedValidations = arrayFilter(
+        benchmarkValidations,
+        (validation) => validation.factoryId === campaign.factoryId
+          && validation.campaignArchive.kind === campaign.archive.kind
+          && validation.campaignArchive.sequence === campaign.archive.sequence
+          && validation.campaignArchive.hash === campaign.archive.hash
+      );
+      if (relatedValidations.length === 0) {
+        return;
+      }
+      const latestValidation = relatedValidations[relatedValidations.length - 1];
+      const latestValidationRecord = arrayFind(
+        benchmarkValidationRecords,
+        (record) => record.kind === latestValidation.archive.kind
+          && record.sequence === latestValidation.archive.sequence
+          && record.hash === latestValidation.archive.hash
+      );
+      const entry = harnessFactoryBenchmarkFrontierValidationMemoryEntry(
+        campaign,
+        relatedValidations,
+        prefix,
+        campaignIndex,
+        provenanceForLedgerRecord(latestValidationRecord)
+      );
+      if (entry !== null) {
+        arrayPush(benchmarkFrontierValidationMemoryEntries, entry);
+      }
+    });
     const coordinations = ledger.restoreMemoryAwareCoordination();
     const coordinationRecords = ledgerRecordsOfKind(ledger, 'memory-aware-coordination');
     const sessions = ledger.restoreMemoryAwareSessions();
@@ -991,6 +1132,7 @@ export class BoundedStructuredMemory {
       + discoveries.length
       + benchmarkCampaigns.length
       + benchmarkValidations.length
+      + benchmarkFrontierValidationMemoryEntries.length
       + coordinations.length
       + researchQuestions.length
       + researchResults.length
@@ -1051,6 +1193,9 @@ export class BoundedStructuredMemory {
           provenanceForLedgerRecord(benchmarkValidationRecords[validationIndex])
         )
       );
+    });
+    arrayForEach(benchmarkFrontierValidationMemoryEntries, (entry) => {
+      arrayPush(entries, entry);
     });
     arrayForEach(coordinations, (coordination, coordinationIndex) => {
       arrayPush(

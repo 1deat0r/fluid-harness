@@ -124,7 +124,7 @@ const validationContext = buildStructuredMemoryContext({
     keywords: ['validation-failed']
   }
 });
-assert.equal(memory.size, 4);
+assert.equal(memory.size, 5);
 assert.equal(validationContext.resultCount, 1);
 assert.equal(
   validationContext.query.source,

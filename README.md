@@ -4,7 +4,7 @@
 ## Public status
 
 - Package version: 0.1.0
-- Acceptance ledger: 467/467 gates marked met in [GATES.md](GATES.md).
+- Acceptance ledger: 469/469 gates marked met in [GATES.md](GATES.md).
 - Scope: bounded architecture discovery, evaluation, archival, research, and improvement; no automatic deployment or artificial-superintelligence claim.
 - Generated detail: [docs/STATUS.md](docs/STATUS.md).
 
@@ -355,6 +355,8 @@ node scripts/check-harness-factory-benchmark-frontier-validation-research-agenda
 node scripts/check-harness-factory-benchmark-frontier-validation-research-agenda-boundary.mjs
 node scripts/check-harness-factory-benchmark-frontier-validation-research-execution.mjs
 node scripts/check-harness-factory-benchmark-frontier-validation-research-execution-boundary.mjs
+node scripts/check-harness-factory-benchmark-frontier-validation-memory-improvement.mjs
+node scripts/check-harness-factory-benchmark-frontier-validation-memory-improvement-boundary.mjs
 node scripts/check-harness-factory-campaign-memory-improvement.mjs
 node scripts/check-harness-factory-campaign-memory-improvement-boundary.mjs
 node scripts/check-memory-ledger-adversarial-lineage-planner.mjs
@@ -607,6 +609,8 @@ Archived campaign validations can also be imported into structured memory under 
 An incomplete scorecard also creates a high-priority `COMPLETE_BENCHMARK_FRONTIER_VALIDATION` research item in `factory.researchAgenda()`. The item lists only the missing candidate/level points and the archived evidence needed to plan a fresh batch; once every frontier point has current validation evidence, the target disappears. It is advisory and intentionally not executable by the single-point validation bridge.
 
 `factory.executeBenchmarkFrontierValidationResearch(target, options)` is the bounded execution bridge for that frontier target. The operator must supply the exact current agenda item, the matching archived campaign, a fresh candidate for every listed missing point, the original benchmark suite, and a disjoint holdout suite. The factory validates all missing points before archiving their child results, then returns only data-only validation evidence and the post-batch frontier status. It rejects forged, foreign, proxied, stale, mismatched, duplicate, disposed, mutable, or accessor-bearing requests; it never restores candidates, adopts an architecture, deploys anything, or transfers authority.
+
+Archived frontier validations also produce one bounded `MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION` record per campaign. The record summarizes covered and missing points, duplicate attempts, pass/fail status, completeness, reproducibility, and independence; a process-isolated proposer or `factory.improve()` can query it as historical evidence. It contains no candidates, runners, evaluator reports, action reports, or authority, and an incomplete record naturally becomes a new memory signal after the frontier bridge fills the missing points.
 
 An unresolved failed campaign validation now appears in `factory.researchAgenda()` as the highest-priority `INVESTIGATE_BENCHMARK_VALIDATION` target. The item carries only the candidate/level, benchmark identity, bounded replay and holdout evidence, and archive locators; a later pass for the same campaign frontier point suppresses the stale failure target. The agenda remains a research queue and does not execute or promote anything.
 
