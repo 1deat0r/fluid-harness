@@ -176,11 +176,44 @@ assert.equal(
   false
 );
 
+const retried = fixture.factory.executeBenchmarkFrontierValidationStabilityResearch(
+  remainingTarget,
+  {
+    campaign: second.campaign,
+    points: [
+      {
+        candidate: buildCandidate(
+          fixture,
+          second.beta.id,
+          second.alternatePlannerCandidate,
+          'beta'
+        ),
+        levelId: second.level.id
+      }
+    ],
+    cases: [fixture.evaluationCase],
+    holdoutCases: [fixture.holdoutCase]
+  }
+);
+assert.equal(retried.status, 'PASSED');
+assert.equal(
+  retried.frontierStatus,
+  HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.STABLE
+);
+assert.equal(retried.targetResolved, true);
+assert.deepEqual(retried.remainingVariablePoints, []);
+assert.equal(retried.validations[0].status, 'PASSED');
+assert.equal(retried.validations[0].archived, true);
+assert.equal(fixture.ledger.length, 7);
+const finalAgenda = fixture.factory.researchAgenda();
+assert.equal(finalAgenda.returnedItemCount, 0);
+
 console.log(
   `FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_EXECUTION_FAILURE_OK `
   + `validated=${rechecked.validationCount} passed=${rechecked.passedCount} `
   + `frontierStatus=${rechecked.frontierStatus} targetResolved=${rechecked.targetResolved} `
   + `remainingVariablePoints=${rechecked.remainingVariablePoints.length} `
-  + `requeued=${remainingTarget !== undefined} ledgerEntries=${fixture.ledger.length} `
+  + `requeued=${remainingTarget !== undefined} retried=${retried.status} `
+  + `finalStatus=${retried.frontierStatus} ledgerEntries=${fixture.ledger.length} `
   + `dataOnly=${rechecked.dataOnly} authorityTransferred=${rechecked.authorityTransferred}`
 );
