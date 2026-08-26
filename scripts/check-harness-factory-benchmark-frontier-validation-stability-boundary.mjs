@@ -98,6 +98,22 @@ assert.equal(stability.stableFrontierCount, 0);
 assert.equal(stability.frontierScores[0].stabilityStatus, 'UNSTABLE');
 assert.equal(stability.frontierScores[0].campaignCount, 2);
 assert.equal(stability.frontierScores[0].campaignStatuses.length, 2);
+assert.equal(stability.frontierScores[0].stablePointCount, 1);
+assert.equal(stability.frontierScores[0].unstablePointCount, 1);
+assert.equal(stability.frontierScores[0].insufficientPointCount, 0);
+assert.equal(stability.frontierScores[0].pointScores.length, 2);
+assert.equal(
+  stability.frontierScores[0].pointScores.some(
+    ({ stabilityStatus }) => stabilityStatus === 'UNSTABLE'
+  ),
+  true
+);
+assert.equal(
+  stability.frontierScores[0].pointScores.some(
+    ({ stabilityStatus }) => stabilityStatus === 'STABLE'
+  ),
+  true
+);
 assert.equal(stability.dataOnly, true);
 assert.equal(stability.authorityTransferred, false);
 assert.equal(Object.hasOwn(stability.frontierScores[0], 'candidate'), false);

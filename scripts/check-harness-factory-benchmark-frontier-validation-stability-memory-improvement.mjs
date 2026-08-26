@@ -135,6 +135,7 @@ assert.equal(context.results[0].keywords.includes('frontier-campaigns-2'), true)
 assert.equal(context.results[0].keywords.includes('complete-1-of-2'), true);
 assert.equal(context.results[0].keywords.includes('reproducible-1-of-2'), true);
 assert.equal(context.results[0].keywords.includes('independent-1-of-2'), true);
+assert.equal(context.results[0].keywords.includes('variable-points-1'), true);
 assert.equal(
   context.results[0].keywords.includes(`factory-${fixture.factory.factoryId}`),
   true
@@ -205,6 +206,7 @@ assert.equal(
   stableContext.results[0].keywords.includes('frontier-stability-unstable'),
   false
 );
+assert.equal(stableContext.results[0].keywords.includes('variable-points-0'), true);
 assert.equal(
   stableContext.results[0].source,
   MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY

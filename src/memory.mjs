@@ -621,10 +621,12 @@ function harnessFactoryBenchmarkFrontierValidationCampaignScore(campaign, valida
       pointScore = {
         candidateId: validation.candidateId,
         levelId: validation.levelId,
+        validationCount: 0,
         latest: null
       };
       arrayPush(pointScores, pointScore);
     }
+    pointScore.validationCount += 1;
     pointScore.latest = validation;
   });
   const frontierCount = campaign.frontier.length;
@@ -644,6 +646,30 @@ function harnessFactoryBenchmarkFrontierValidationCampaignScore(campaign, valida
     : passedCount === coveredCount && complete && reproducible && independent
       ? 'passed'
       : 'failed';
+  const points = arrayMap(campaign.frontier, (frontierPoint) => {
+    const pointScore = arrayFind(
+      pointScores,
+      (candidatePoint) => candidatePoint.candidateId === frontierPoint.architectureId
+        && candidatePoint.levelId === frontierPoint.levelId
+    );
+    const latest = pointScore?.latest ?? null;
+    return {
+      candidateId: frontierPoint.architectureId,
+      levelId: frontierPoint.levelId,
+      validationCount: pointScore?.validationCount ?? 0,
+      status: latest === null
+        ? 'incomplete'
+        : latest.passed === true
+            && latest.complete === true
+            && latest.reproducible === true
+            && latest.independent === true
+          ? 'passed'
+          : 'failed',
+      complete: latest?.complete === true,
+      reproducible: latest?.reproducible === true,
+      independent: latest?.independent === true
+    };
+  });
   return {
     frontierFingerprint: harnessFactoryBenchmarkFrontierValidationIdentity(campaign),
     frontierCount,
@@ -653,6 +679,7 @@ function harnessFactoryBenchmarkFrontierValidationCampaignScore(campaign, valida
     reproducible,
     independent,
     status,
+    points,
     latestValidation: campaignValidations[campaignValidations.length - 1]
   };
 }
@@ -692,7 +719,8 @@ function harnessFactoryBenchmarkFrontierValidationStabilityMemoryEntries(
         independentCount: 0,
         latestValidation: null,
         groupKey,
-        statuses: []
+        statuses: [],
+        pointGroups: []
       };
       arrayPush(groups, group);
     }
@@ -720,6 +748,32 @@ function harnessFactoryBenchmarkFrontierValidationStabilityMemoryEntries(
       group.independentCount += 1;
     }
     arrayPush(group.statuses, campaignScore.status);
+    arrayForEach(campaignScore.points, (point) => {
+      let pointGroup = arrayFind(
+        group.pointGroups,
+        (candidatePoint) => candidatePoint.candidateId === point.candidateId
+          && candidatePoint.levelId === point.levelId
+      );
+      if (pointGroup === undefined) {
+        pointGroup = {
+          candidateId: point.candidateId,
+          levelId: point.levelId,
+          campaignCount: 0,
+          validationCount: 0,
+          variableCount: 0
+        };
+        arrayPush(group.pointGroups, pointGroup);
+      }
+      pointGroup.campaignCount += 1;
+      pointGroup.validationCount += point.validationCount;
+      if (point.status !== 'passed'
+        || point.complete !== true
+        || point.reproducible !== true
+        || point.independent !== true
+      ) {
+        pointGroup.variableCount += 1;
+      }
+    });
     if (
       group.latestValidation === null
       || campaignScore.latestValidation.archive.sequence
@@ -735,6 +789,10 @@ function harnessFactoryBenchmarkFrontierValidationStabilityMemoryEntries(
       && group.reproducibleCount === group.campaignCount
       && group.independentCount === group.campaignCount;
     const stability = stable ? 'stable' : 'unstable';
+    const variablePointCount = arrayFilter(
+      group.pointGroups,
+      ({ variableCount }) => variableCount > 0
+    ).length;
     const keywords = [
       'harness-factory-benchmark-frontier-validation-stability',
       `frontier-stability-${stability}`,
@@ -746,7 +804,8 @@ function harnessFactoryBenchmarkFrontierValidationStabilityMemoryEntries(
       `frontier-incomplete-${group.incompleteCount}`,
       `complete-${group.completeCount}-of-${group.campaignCount}`,
       `reproducible-${group.reproducibleCount}-of-${group.campaignCount}`,
-      `independent-${group.independentCount}-of-${group.campaignCount}`
+      `independent-${group.independentCount}-of-${group.campaignCount}`,
+      `variable-points-${variablePointCount}`
     ];
     const factoryKeyword = `factory-${group.factoryId}`;
     if (

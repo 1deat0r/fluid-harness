@@ -100,6 +100,11 @@ const stabilityTarget = agenda.items.find(
 assert.notEqual(stabilityTarget, undefined);
 assert.equal(stabilityTarget.dataOnly, true);
 assert.equal(stabilityTarget.authorityTransferred, false);
+assert.equal(stabilityTarget.frontierStability.variablePoints.length, 1);
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].stabilityStatus,
+  'UNSTABLE'
+);
 
 const forgedAgenda = Object.freeze({ ...agenda });
 const proxiedAgenda = new Proxy(agenda, {});

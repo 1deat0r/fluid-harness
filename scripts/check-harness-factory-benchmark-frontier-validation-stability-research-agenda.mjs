@@ -137,6 +137,22 @@ assert.equal(
   HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.UNSTABLE
 );
 assert.equal(stabilityTarget.frontierStability.campaignStatuses.length, 2);
+assert.equal(stabilityTarget.frontierStability.stablePointCount, 1);
+assert.equal(stabilityTarget.frontierStability.unstablePointCount, 1);
+assert.equal(stabilityTarget.frontierStability.insufficientPointCount, 0);
+assert.equal(stabilityTarget.frontierStability.variablePoints.length, 1);
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].candidateId,
+  second.beta.id
+);
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].levelId,
+  second.level.id
+);
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].stabilityStatus,
+  HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.UNSTABLE
+);
 assert.match(stabilityTarget.reason, /unstable/);
 assert.equal(stabilityTarget.dataOnly, true);
 assert.equal(stabilityTarget.authorityTransferred, false);

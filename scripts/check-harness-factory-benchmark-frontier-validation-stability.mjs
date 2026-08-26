@@ -185,10 +185,25 @@ assert.equal(stable.reproducibleCount, 2);
 assert.equal(stable.independentCount, 2);
 assert.equal(stable.stable, true);
 assert.equal(stable.campaignStatuses.length, 2);
+assert.equal(stable.stablePointCount, 2);
+assert.equal(stable.unstablePointCount, 0);
+assert.equal(stable.insufficientPointCount, 0);
+assert.equal(stable.pointScores.length, 2);
+assert.equal(
+  stable.pointScores.every(
+    ({ stabilityStatus }) => stabilityStatus
+      === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.STABLE
+  ),
+  true
+);
 assert.equal(insufficient.campaignCount, 1);
 assert.equal(insufficient.validationCount, 1);
 assert.equal(insufficient.stable, false);
 assert.equal(insufficient.campaignStatuses.length, 1);
+assert.equal(insufficient.stablePointCount, 0);
+assert.equal(insufficient.unstablePointCount, 0);
+assert.equal(insufficient.insufficientPointCount, 2);
+assert.equal(insufficient.pointScores.length, 2);
 assert.equal(stability.dataOnly, true);
 assert.equal(stability.authorityTransferred, false);
 assert.equal(Object.hasOwn(stable, 'candidate'), false);
