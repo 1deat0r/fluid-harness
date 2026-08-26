@@ -4,7 +4,7 @@
 ## Public status
 
 - Package version: 0.1.0
-- Acceptance ledger: 478/478 gates marked met in [GATES.md](GATES.md).
+- Acceptance ledger: 480/480 gates marked met in [GATES.md](GATES.md).
 - Scope: bounded architecture discovery, evaluation, archival, research, and improvement; no automatic deployment or artificial-superintelligence claim.
 - Generated detail: [docs/STATUS.md](docs/STATUS.md).
 
@@ -323,6 +323,8 @@ node scripts/check-harness-factory-improvement.mjs
 node scripts/check-harness-factory-improvement-boundary.mjs
 node scripts/check-harness-factory-research-agenda.mjs
 node scripts/check-harness-factory-research-agenda-boundary.mjs
+node scripts/check-harness-factory-research-plan.mjs
+node scripts/check-harness-factory-research-plan-boundary.mjs
 node scripts/check-harness-factory-benchmark.mjs
 node scripts/check-harness-factory-benchmark-boundary.mjs
 node scripts/check-harness-factory-benchmark-campaign.mjs
@@ -596,6 +598,8 @@ The `HarnessFactory` façade is the first lifecycle-level assembly line over tho
 `factory.recommend()` is a read-only advisory layer over that verified history. It returns a bounded frozen summary with one of four statuses: `RECOVER_FAILED_HOLDOUT`, `VALIDATE_LATEST_HOLDOUT`, `IMPROVE_LATEST_GENERATION`, or `NO_HISTORY`. It prioritizes an unresolved failed holdout, then an unvalidated latest generation, then strict improvement; archived explicit validation records count as verified holdout dispositions without becoming new generations. It does not run a planner, evaluate a candidate, mutate the ledger, or select deployment authority.
 
 `factory.researchAgenda()` is the broader factory research queue. It derives a capped, ranked list from the same verified archives: unresolved holdout recovery, unseen validation, skeptic weaknesses, transfer gaps, and strict improvement. Each item carries only a generation/archive locator, benchmark identity, measured fitness, holdout status, and plain-language reason. The agenda is an experiment backlog, not an executor: it does not invent executable code, run candidates, mutate history, or transfer authority.
+
+`factory.researchPlan()` turns that ranked agenda into a frozen, data-only experiment plan. Each plan names the bounded bridge that applies (`FACTORY_RECOMMENDATION`, `HOLDOUT_VALIDATION`, benchmark/frontier validation, frontier stability, or operator experiment), the method an operator can call, the required fresh inputs, and the evidence the experiment should produce. It is a planning handoff only: it does not run candidates, restore runtime artifacts, mutate the ledger, or grant execution authority.
 
 `factory.benchmark({ candidate, cases, levels })` is the factory’s bounded architecture benchmarker. It evaluates a fresh candidate at finite budget levels, independently replays each level with fresh search runners, rejects definition drift between levels, and returns summary metrics plus a compute/fitness Pareto frontier. The candidate, search reports, runners, and action evidence remain private; the benchmark does not adopt, deploy, or archive the candidate.
 

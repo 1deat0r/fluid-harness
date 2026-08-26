@@ -112,6 +112,14 @@ export const HARNESS_FACTORY_RESEARCH_TARGETS = objectFreeze({
   TEST_TRANSFER_GAP: 'TEST_TRANSFER_GAP',
   VALIDATE_UNSEEN_HOLDOUT: 'VALIDATE_UNSEEN_HOLDOUT'
 });
+export const HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES = objectFreeze({
+  BENCHMARK_FRONTIER_VALIDATION: 'BENCHMARK_FRONTIER_VALIDATION',
+  BENCHMARK_VALIDATION: 'BENCHMARK_VALIDATION',
+  FACTORY_RECOMMENDATION: 'FACTORY_RECOMMENDATION',
+  FRONTIER_STABILITY: 'FRONTIER_STABILITY',
+  HOLDOUT_VALIDATION: 'HOLDOUT_VALIDATION',
+  OPERATOR_EXPERIMENT: 'OPERATOR_EXPERIMENT'
+});
 const HARNESS_FACTORY_RESEARCH_TARGET_VALUES = objectFreeze([
   HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION,
   HARNESS_FACTORY_RESEARCH_TARGETS.IMPROVE_LATEST_GENERATION,
@@ -155,6 +163,28 @@ const MANUFACTURE_OPTIONS_KEYS = objectFreeze([
   'agentContext',
   'agentReproduction',
   'toolRegistry'
+]);
+const RESEARCH_PLAN_OPTIONS_KEYS = objectFreeze(['maxItems']);
+const RESEARCH_PLAN_ITEM_KEYS = objectFreeze([
+  'agendaItemId',
+  'archive',
+  'authorityTransferred',
+  'benchmark',
+  'bridge',
+  'dataOnly',
+  'executionMethod',
+  'expectedEvidence',
+  'factoryId',
+  'fitness',
+  'generation',
+  'holdoutStatus',
+  'id',
+  'objective',
+  'priority',
+  'rank',
+  'requiredInputs',
+  'target',
+  'validationArchive'
 ]);
 const IMPROVEMENT_OPTIONS_KEYS = objectFreeze([
   'goal',
@@ -265,6 +295,7 @@ const TRUSTED_HARNESS_FACTORY_RECOMMENDATIONS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_RECOMMENDATION_FACTORIES = weakMapCreate();
 const TRUSTED_HARNESS_FACTORY_RESEARCH_AGENDAS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_RESEARCH_AGENDA_ITEM_FACTORIES = weakMapCreate();
+const TRUSTED_HARNESS_FACTORY_RESEARCH_PLANS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARKS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGNS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_FACTORIES = weakMapCreate();
@@ -1009,6 +1040,133 @@ const HARNESS_FACTORY_RESEARCH_TARGET_PRIORITIES = objectFreeze({
   [HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_SKEPTIC_WEAKNESS]: 220,
   [HARNESS_FACTORY_RESEARCH_TARGETS.TEST_TRANSFER_GAP]: 210,
   [HARNESS_FACTORY_RESEARCH_TARGETS.IMPROVE_LATEST_GENERATION]: 200
+});
+
+const HARNESS_FACTORY_RESEARCH_PLAN_BLUEPRINTS = objectFreeze({
+  [HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION]: objectFreeze({
+    bridge: HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.BENCHMARK_FRONTIER_VALIDATION,
+    executionMethod: 'factory.executeBenchmarkFrontierValidationResearch',
+    requiredInputs: objectFreeze([
+      'the exact current frontier agenda item',
+      'the matching archived benchmark campaign',
+      'one fresh candidate reconstruction for every missing frontier point',
+      'the original benchmark cases and a disjoint holdout suite',
+      'holdout budgets and archive=true'
+    ]),
+    expectedEvidence: objectFreeze([
+      'one fresh validation for every missing frontier point',
+      'hash-chained child validation archives',
+      'post-experiment frontier coverage and pass/fail status'
+    ])
+  }),
+  [HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY]: objectFreeze({
+    bridge: HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.FRONTIER_STABILITY,
+    executionMethod: 'factory.executeBenchmarkFrontierValidationStabilityResearch',
+    requiredInputs: objectFreeze([
+      'the exact current instability agenda item',
+      'the latest matching archived benchmark campaign',
+      'one fresh candidate reconstruction for every variable frontier point',
+      'the original benchmark cases and a disjoint holdout suite',
+      'holdout budgets and archive=true'
+    ]),
+    expectedEvidence: objectFreeze([
+      'one fresh validation for every diagnosed variable point',
+      'hash-chained pass/fail validation archives',
+      'updated repeated-frontier stability with remaining variance or recovery'
+    ])
+  }),
+  [HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_VALIDATION]: objectFreeze({
+    bridge: HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.BENCHMARK_VALIDATION,
+    executionMethod: 'factory.executeBenchmarkValidationResearch',
+    requiredInputs: objectFreeze([
+      'the exact current benchmark-validation agenda item',
+      'the matching archived benchmark campaign',
+      'a fresh candidate reconstruction for the cited candidate and level',
+      'the original benchmark cases and a disjoint holdout suite',
+      'holdout budgets and archive=true'
+    ]),
+    expectedEvidence: objectFreeze([
+      'a fresh benchmark-point replay',
+      'independent disjoint holdout evidence',
+      'a hash-chained pass/fail validation archive'
+    ])
+  }),
+  [HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_SKEPTIC_WEAKNESS]: objectFreeze({
+    bridge: HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.OPERATOR_EXPERIMENT,
+    executionMethod: 'operator-supplied factory.manufacture',
+    requiredInputs: objectFreeze([
+      'fresh planner candidates and policies',
+      'finite adversarial cases aimed at the recorded weakness',
+      'production, research, and skeptic budgets',
+      'archive=true'
+    ]),
+    expectedEvidence: objectFreeze([
+      'fresh adversarial weakness counts',
+      'independent replay and proof status',
+      'a new factory generation comparison'
+    ])
+  }),
+  [HARNESS_FACTORY_RESEARCH_TARGETS.RECOVER_FAILED_HOLDOUT]: objectFreeze({
+    bridge: HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.FACTORY_RECOMMENDATION,
+    executionMethod: 'factory.executeRecommendation',
+    requiredInputs: objectFreeze([
+      'the exact current factory recommendation',
+      'fresh planner candidates and policies',
+      'the benchmark cases plus a disjoint holdout suite',
+      'production, research, skeptic, and holdout budgets',
+      'archive=true'
+    ]),
+    expectedEvidence: objectFreeze([
+      'fresh strict-improvement evidence against the failed baseline',
+      'fresh independent holdout recovery evidence',
+      'an adopted or rejected archived generation'
+    ])
+  }),
+  [HARNESS_FACTORY_RESEARCH_TARGETS.TEST_TRANSFER_GAP]: objectFreeze({
+    bridge: HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.OPERATOR_EXPERIMENT,
+    executionMethod: 'operator-supplied factory.manufacture',
+    requiredInputs: objectFreeze([
+      'fresh planner candidates and policies',
+      'finite transfer cases that exercise the recorded gap',
+      'production, research, and skeptic budgets',
+      'archive=true'
+    ]),
+    expectedEvidence: objectFreeze([
+      'fresh production-versus-transfer comparison',
+      'independent replay and proof status',
+      'a new factory generation comparison'
+    ])
+  }),
+  [HARNESS_FACTORY_RESEARCH_TARGETS.VALIDATE_UNSEEN_HOLDOUT]: objectFreeze({
+    bridge: HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.HOLDOUT_VALIDATION,
+    executionMethod: 'factory.validateRecommendation + factory.archiveValidation',
+    requiredInputs: objectFreeze([
+      'the exact current factory recommendation',
+      'a fresh candidate reconstruction matching the archived architecture',
+      'a disjoint unseen holdout suite',
+      'holdout budgets'
+    ]),
+    expectedEvidence: objectFreeze([
+      'fresh complete independent holdout evidence',
+      'a hash-chained validation archive',
+      'an updated advisory recommendation without creating a generation'
+    ])
+  }),
+  [HARNESS_FACTORY_RESEARCH_TARGETS.IMPROVE_LATEST_GENERATION]: objectFreeze({
+    bridge: HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.FACTORY_RECOMMENDATION,
+    executionMethod: 'factory.executeRecommendation',
+    requiredInputs: objectFreeze([
+      'the exact current factory recommendation',
+      'fresh planner candidates and policies',
+      'the same benchmark cases and compatible budgets',
+      'archive=true'
+    ]),
+    expectedEvidence: objectFreeze([
+      'fresh strict-improvement evidence against the selected baseline',
+      'independent replay and proof status',
+      'an adopted or rejected archived generation'
+    ])
+  })
 });
 
 function holdoutRecoveredLater(history, validations, index) {
@@ -2234,6 +2392,63 @@ function factoryResearchAgendaFromHistory({
     recommendationStatus: recommendation.status,
     items: selected,
     truncated,
+    token: FACTORY_TOKEN
+  });
+}
+
+function factoryResearchPlanItem(factory, agendaItem) {
+  const blueprint = HARNESS_FACTORY_RESEARCH_PLAN_BLUEPRINTS[agendaItem.target];
+  if (blueprint === undefined) {
+    throw new Error(
+      `Harness Factory research target ${agendaItem.target} has no planning blueprint`
+    );
+  }
+  return objectFreeze({
+    id: `harness-factory-research-plan:${agendaItem.id}`,
+    agendaItemId: agendaItem.id,
+    factoryId: factory.factoryId,
+    target: agendaItem.target,
+    bridge: blueprint.bridge,
+    executionMethod: blueprint.executionMethod,
+    rank: agendaItem.rank,
+    priority: agendaItem.priority,
+    generation: agendaItem.generation,
+    archive: agendaItem.archive,
+    validationArchive: agendaItem.validationArchive,
+    benchmark: agendaItem.benchmark,
+    holdoutStatus: agendaItem.holdoutStatus,
+    fitness: agendaItem.fitness,
+    objective: agendaItem.reason,
+    requiredInputs: objectFreeze(arraySlice(blueprint.requiredInputs)),
+    expectedEvidence: objectFreeze(arraySlice(blueprint.expectedEvidence)),
+    dataOnly: true,
+    authorityTransferred: false
+  });
+}
+
+function factoryResearchPlanFromAgenda({ factory, agenda }) {
+  if (!isTrustedHarnessFactory(factory)) {
+    throw new TypeError('Harness Factory research plan requires an exact trusted factory');
+  }
+  if (
+    !isTrustedHarnessFactoryResearchAgendaReport(agenda)
+    || agenda.factoryId !== factory.factoryId
+  ) {
+    throw new TypeError('Harness Factory research plan requires a trusted agenda from this factory');
+  }
+  const plans = arrayMap(
+    agenda.items,
+    (agendaItem) => factoryResearchPlanItem(factory, agendaItem)
+  );
+  return new HarnessFactoryResearchPlanReport({
+    factory,
+    consideredGenerationCount: agenda.consideredGenerationCount,
+    consideredValidationCount: agenda.consideredValidationCount,
+    consideredTargetCount: agenda.consideredTargetCount,
+    requestedItemCount: agenda.requestedItemCount,
+    recommendationStatus: agenda.recommendationStatus,
+    plans,
+    truncated: agenda.truncated,
     token: FACTORY_TOKEN
   });
 }
@@ -5034,6 +5249,180 @@ export function isTrustedHarnessFactoryResearchAgendaReport(report) {
     && objectGetPrototypeOf(report) === HarnessFactoryResearchAgendaReport.prototype;
 }
 
+export class HarnessFactoryResearchPlanReport {
+  constructor({
+    factory,
+    consideredGenerationCount,
+    consideredValidationCount,
+    consideredTargetCount,
+    requestedItemCount,
+    recommendationStatus,
+    plans,
+    truncated,
+    token
+  }) {
+    const planIds = arrayIsArray(plans)
+      ? arrayMap(plans, ({ id }) => id)
+      : [];
+    const forbiddenKeys = [
+      'candidate',
+      'candidates',
+      'planner',
+      'runner',
+      'actionReport',
+      'authority'
+    ];
+    if (
+      token !== FACTORY_TOKEN
+      || !isTrustedHarnessFactory(factory)
+      || !isSafeInteger(consideredGenerationCount)
+      || consideredGenerationCount < 0
+      || !isSafeInteger(consideredValidationCount)
+      || consideredValidationCount < 0
+      || !isSafeInteger(consideredTargetCount)
+      || consideredTargetCount < 0
+      || !isSafeInteger(requestedItemCount)
+      || requestedItemCount <= 0
+      || !arrayIncludes(
+        [
+          HARNESS_FACTORY_RECOMMENDATION_STATUSES.IMPROVE_LATEST_GENERATION,
+          HARNESS_FACTORY_RECOMMENDATION_STATUSES.NO_HISTORY,
+          HARNESS_FACTORY_RECOMMENDATION_STATUSES.RECOVER_FAILED_HOLDOUT,
+          HARNESS_FACTORY_RECOMMENDATION_STATUSES.VALIDATE_LATEST_HOLDOUT
+        ],
+        recommendationStatus
+      )
+      || !arrayIsArray(plans)
+      || plans.length > MAX_HARNESS_FACTORY_RESEARCH_AGENDA_ITEMS
+      || plans.length > requestedItemCount
+      || consideredTargetCount < plans.length
+      || typeof truncated !== 'boolean'
+      || truncated !== (consideredTargetCount > requestedItemCount)
+      || setSize(setFromArray(planIds)) !== planIds.length
+      || arraySome(
+        plans,
+        (plan, index) => (
+          !isPlainObject(plan)
+          || reflectOwnKeys(plan).length !== RESEARCH_PLAN_ITEM_KEYS.length
+          || arraySome(
+            reflectOwnKeys(plan),
+            (key) => !arrayIncludes(RESEARCH_PLAN_ITEM_KEYS, key)
+          )
+          || plan.id !== `harness-factory-research-plan:${plan.agendaItemId}`
+          || typeof plan.agendaItemId !== 'string'
+          || stringTrim(plan.agendaItemId) === ''
+          || plan.factoryId !== factory.factoryId
+          || !arrayIncludes(HARNESS_FACTORY_RESEARCH_TARGET_VALUES, plan.target)
+          || !isSafeInteger(plan.rank)
+          || plan.rank !== index + 1
+          || !isSafeInteger(plan.priority)
+          || plan.priority <= 0
+          || plan.generation !== null
+            && (!isSafeInteger(plan.generation) || plan.generation <= 0)
+          || !isPlainObject(plan.archive)
+          || plan.validationArchive !== null
+            && !isPlainObject(plan.validationArchive)
+          || !isPlainObject(plan.benchmark)
+          || !isPlainObject(plan.fitness)
+          || typeof plan.holdoutStatus !== 'string'
+          || stringTrim(plan.holdoutStatus) === ''
+          || !arrayIncludes(
+            [
+              HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.BENCHMARK_FRONTIER_VALIDATION,
+              HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.BENCHMARK_VALIDATION,
+              HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.FACTORY_RECOMMENDATION,
+              HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.FRONTIER_STABILITY,
+              HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.HOLDOUT_VALIDATION,
+              HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.OPERATOR_EXPERIMENT
+            ],
+            plan.bridge
+          )
+          || typeof plan.executionMethod !== 'string'
+          || stringTrim(plan.executionMethod) === ''
+          || typeof plan.objective !== 'string'
+          || stringTrim(plan.objective) === ''
+          || !arrayIsArray(plan.requiredInputs)
+          || plan.requiredInputs.length === 0
+          || !arrayEvery(
+            plan.requiredInputs,
+            (input) => typeof input === 'string' && stringTrim(input) !== ''
+          )
+          || !arrayIsArray(plan.expectedEvidence)
+          || plan.expectedEvidence.length === 0
+          || !arrayEvery(
+            plan.expectedEvidence,
+            (evidence) => typeof evidence === 'string' && stringTrim(evidence) !== ''
+          )
+          || plan.dataOnly !== true
+          || plan.authorityTransferred !== false
+          || arraySome(
+            forbiddenKeys,
+            (key) => arrayIncludes(reflectOwnKeys(plan), key)
+              || arrayIncludes(reflectOwnKeys(plan.archive), key)
+              || plan.validationArchive !== null
+                && arrayIncludes(reflectOwnKeys(plan.validationArchive), key)
+              || arrayIncludes(reflectOwnKeys(plan.benchmark), key)
+              || arrayIncludes(reflectOwnKeys(plan.fitness), key)
+          )
+          || HARNESS_FACTORY_RESEARCH_PLAN_BLUEPRINTS[plan.target] === undefined
+          || plan.bridge !== HARNESS_FACTORY_RESEARCH_PLAN_BLUEPRINTS[plan.target].bridge
+          || plan.executionMethod
+            !== HARNESS_FACTORY_RESEARCH_PLAN_BLUEPRINTS[plan.target].executionMethod
+          || jsonStringify(plan.requiredInputs)
+            !== jsonStringify(
+              HARNESS_FACTORY_RESEARCH_PLAN_BLUEPRINTS[plan.target].requiredInputs
+            )
+          || jsonStringify(plan.expectedEvidence)
+            !== jsonStringify(
+              HARNESS_FACTORY_RESEARCH_PLAN_BLUEPRINTS[plan.target].expectedEvidence
+            )
+        )
+      )
+    ) {
+      throw new TypeError('Harness Factory research plan requires trusted data-only evidence');
+    }
+    if (
+      recommendationStatus === HARNESS_FACTORY_RECOMMENDATION_STATUSES.NO_HISTORY
+      && (
+        consideredGenerationCount !== 0
+        || arraySome(plans, (plan) => plan.generation !== null)
+      )
+    ) {
+      throw new TypeError('Harness Factory empty research plan is inconsistent');
+    }
+    this.factoryId = factory.factoryId;
+    this.consideredGenerationCount = consideredGenerationCount;
+    this.consideredValidationCount = consideredValidationCount;
+    this.consideredTargetCount = consideredTargetCount;
+    this.requestedItemCount = requestedItemCount;
+    this.returnedPlanCount = plans.length;
+    this.maxItems = MAX_HARNESS_FACTORY_RESEARCH_AGENDA_ITEMS;
+    this.recommendationStatus = recommendationStatus;
+    this.primaryPlanId = plans[0]?.id ?? null;
+    this.truncated = truncated;
+    this.complete = truncated === false;
+    this.plans = objectFreeze(arrayMap(
+      plans,
+      (plan) => objectFreeze({
+        ...plan,
+        requiredInputs: objectFreeze(arraySlice(plan.requiredInputs)),
+        expectedEvidence: objectFreeze(arraySlice(plan.expectedEvidence))
+      })
+    ));
+    this.dataOnly = true;
+    this.authorityTransferred = false;
+    weakSetAdd(TRUSTED_HARNESS_FACTORY_RESEARCH_PLANS, this);
+    objectFreeze(this);
+  }
+}
+
+export function isTrustedHarnessFactoryResearchPlanReport(report) {
+  return typeof report === 'object'
+    && report !== null
+    && weakSetHas(TRUSTED_HARNESS_FACTORY_RESEARCH_PLANS, report)
+    && objectGetPrototypeOf(report) === HarnessFactoryResearchPlanReport.prototype;
+}
+
 function isTrustedHarnessFactoryResearchAgendaItem(item, factory) {
   return isPlainObject(item)
     && weakMapGet(
@@ -7659,6 +8048,21 @@ export class HarnessFactory {
     });
   }
 
+  researchPlan(options = {}) {
+    requireDataObject(
+      options,
+      'Harness Factory research plan options',
+      RESEARCH_PLAN_OPTIONS_KEYS
+    );
+    if (!isTrustedHarnessFactory(this)) {
+      throw new TypeError('Harness Factory requires an exact trusted factory');
+    }
+    return factoryResearchPlanFromAgenda({
+      factory: this,
+      agenda: this.researchAgenda(options)
+    });
+  }
+
   executeBenchmarkValidationResearch(target, options = {}) {
     requireDataObject(
       options,
@@ -8422,6 +8826,7 @@ objectFreeze(HarnessFactoryFrontierPortfolioReport.prototype);
 objectFreeze(HarnessFactoryHistoryReport.prototype);
 objectFreeze(HarnessFactoryRecommendationReport.prototype);
 objectFreeze(HarnessFactoryResearchAgendaReport.prototype);
+objectFreeze(HarnessFactoryResearchPlanReport.prototype);
 objectFreeze(HarnessFactoryBenchmarkReport.prototype);
 objectFreeze(HarnessFactoryBenchmarkCampaignReport.prototype);
 objectFreeze(HarnessFactoryBenchmarkCampaignHistoryReport.prototype);
