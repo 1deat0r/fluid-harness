@@ -238,6 +238,7 @@
     "harness-factory-benchmark-frontier-validation-stability-research-agenda-boundary": "node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-agenda-boundary.mjs",
     "harness-factory-benchmark-frontier-validation-stability-research-execution": "node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-execution.mjs",
     "harness-factory-benchmark-frontier-validation-stability-research-execution-boundary": "node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-execution-boundary.mjs",
+    "harness-factory-benchmark-frontier-validation-stability-research-execution-failure": "node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-execution-failure.mjs",
     "harness-factory-benchmark-frontier-validation-stability-memory-improvement": "node scripts/check-harness-factory-benchmark-frontier-validation-stability-memory-improvement.mjs",
     "harness-factory-benchmark-frontier-validation-stability-memory-improvement-boundary": "node scripts/check-harness-factory-benchmark-frontier-validation-stability-memory-improvement-boundary.mjs",
     "harness-factory-campaign-memory-improvement": "node scripts/check-harness-factory-campaign-memory-improvement.mjs",

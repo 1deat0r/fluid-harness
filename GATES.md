@@ -7,7 +7,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 242.104694 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 244.786726 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -17,7 +17,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=492 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=495 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -42,7 +42,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":4.92},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.262},{"l
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.025},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.252},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2388,3 +2388,8 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
   CHECK: node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-execution-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_EXECUTION_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_EXECUTION_BOUNDARY_OK forgedRejected=true proxiedRejected=true wrongBridgeRejected=true archiveBoundary=true pointsRejected=true accessorRejected=true candidateRejected=
+
+- [x] G478: a failed stability recheck is archived as negative evidence, leaves the frontier unstable, and re-queues the remaining variable point
+  CHECK: node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-execution-failure.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_EXECUTION_FAILURE_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_EXECUTION_FAILURE_OK validated=1 passed=0 frontierStatus=UNSTABLE targetResolved=false remainingVariablePoints=1 requeued=true ledgerEntries=6 dataOnly=true authorityTra
