@@ -4,7 +4,7 @@
 ## Public status
 
 - Package version: 0.1.0
-- Acceptance ledger: 459/459 gates marked met in [GATES.md](GATES.md).
+- Acceptance ledger: 461/461 gates marked met in [GATES.md](GATES.md).
 - Scope: bounded architecture discovery, evaluation, archival, research, and improvement; no automatic deployment or artificial-superintelligence claim.
 - Generated detail: [docs/STATUS.md](docs/STATUS.md).
 
@@ -347,6 +347,8 @@ node scripts/check-harness-factory-benchmark-validation-research-execution.mjs
 node scripts/check-harness-factory-benchmark-validation-research-execution-boundary.mjs
 node scripts/check-harness-factory-benchmark-validation-stability.mjs
 node scripts/check-harness-factory-benchmark-validation-stability-boundary.mjs
+node scripts/check-harness-factory-benchmark-campaign-frontier-validation.mjs
+node scripts/check-harness-factory-benchmark-campaign-frontier-validation-boundary.mjs
 node scripts/check-harness-factory-campaign-memory-improvement.mjs
 node scripts/check-harness-factory-campaign-memory-improvement-boundary.mjs
 node scripts/check-memory-ledger-adversarial-lineage-planner.mjs
@@ -445,6 +447,14 @@ node scripts/check-executor-registry-identity-isolation.mjs
 node scripts/check-selector-freshness.mjs
 node scripts/check-question-audit.mjs
 ```
+
+To enable the tracked documentation and GitHub-description pre-commit hook in a fresh clone, run:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+Each local commit refreshes `README.md`, `docs/STATUS.md`, and `.github/repository-description.txt`. When GitHub CLI authentication and the `origin` repository are available, it also synchronizes the repository description; otherwise the commit remains local and prints a non-blocking skip notice.
 
 The graph demo represents a dependency problem as a graph, executes a shortest-path search, independently verifies the result, and emits a proof-carrying report. The constraint demo schedules dependent jobs against CPU capacity and verifies every job, prerequisite, capacity, and makespan invariant. The array demo routes an elementwise sum to a deterministic array engine and independently checks the operation, shape, and values.
 
@@ -583,6 +593,8 @@ Archived campaign validations can also be imported into structured memory under 
 `factory.benchmarkValidationScorecard()` aggregates the latest bounded validation window by candidate. It reports pass/fail counts, pass rate, completion/reproducibility/independence counts, and the latest validation locators, making repeated generalization behavior comparable without exposing a live architecture or turning the scorecard into promotion authority.
 
 `factory.benchmarkValidationStability()` adds a stricter longitudinal view. It groups the same bounded validation window by candidate and architecture fingerprint, counts distinct archived campaign runs, and marks a configuration `STABLE` only when at least two separate campaigns all pass with complete, reproducible, independent evidence. A single campaign is `INSUFFICIENT`; repeated evidence containing a failure or incomplete/non-independent result is `UNSTABLE`. This separates a one-off recovery from repeatable evidence without promoting or deploying the architecture.
+
+`factory.validateBenchmarkCampaignFrontier({ campaign, points, cases, holdoutCases, ... })` validates every archived nondominated campaign point in one bounded batch. Each point needs a fresh matching candidate, the original benchmark suite is replayed with fresh evaluators, and a disjoint holdout is checked before the result can be archived. `factory.archiveBenchmarkCampaignFrontierValidations(batch)` persists the child validation records as hash-chained data-only evidence; the batch cannot adopt, deploy, restore, or transfer runtime authority.
 
 An unresolved failed campaign validation now appears in `factory.researchAgenda()` as the highest-priority `INVESTIGATE_BENCHMARK_VALIDATION` target. The item carries only the candidate/level, benchmark identity, bounded replay and holdout evidence, and archive locators; a later pass for the same campaign frontier point suppresses the stale failure target. The agenda remains a research queue and does not execute or promote anything.
 
