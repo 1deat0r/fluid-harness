@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+node scripts/update-public-docs.mjs
+git add -- README.md docs/STATUS.md .github/repository-description.txt
+
+if command -v gh >/dev/null 2>&1 \
+  && git remote get-url origin >/dev/null 2>&1 \
+  && gh auth status >/dev/null 2>&1; then
+  description="$(tr '\n' ' ' < .github/repository-description.txt | sed 's/[[:space:]]*$//')"
+  gh repo edit --description "$description" >/dev/null
+else
+  echo 'pre-commit: GitHub description sync skipped (origin, gh, or authentication unavailable)' >&2
+fi
