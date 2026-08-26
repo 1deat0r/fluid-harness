@@ -153,6 +153,22 @@ assert.equal(
   stabilityTarget.frontierStability.variablePoints[0].stabilityStatus,
   HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.UNSTABLE
 );
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].campaignStatuses.length,
+  2
+);
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].campaignStatuses[0].status,
+  'PASSED'
+);
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].campaignStatuses[1].status,
+  'INCOMPLETE'
+);
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].campaignStatuses[1].validationArchive,
+  null
+);
 assert.match(stabilityTarget.reason, /unstable/);
 assert.equal(stabilityTarget.dataOnly, true);
 assert.equal(stabilityTarget.authorityTransferred, false);

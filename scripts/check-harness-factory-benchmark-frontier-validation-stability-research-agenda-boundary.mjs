@@ -105,6 +105,26 @@ assert.equal(
   stabilityTarget.frontierStability.variablePoints[0].stabilityStatus,
   'UNSTABLE'
 );
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].campaignStatuses.length,
+  2
+);
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].campaignStatuses[0].status,
+  'PASSED'
+);
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].campaignStatuses[1].status,
+  'INCOMPLETE'
+);
+assert.equal(
+  stabilityTarget.frontierStability.variablePoints[0].campaignStatuses[1].validationArchive,
+  null
+);
+assert.equal(
+  Object.isFrozen(stabilityTarget.frontierStability.variablePoints[0].campaignStatuses),
+  true
+);
 
 const forgedAgenda = Object.freeze({ ...agenda });
 const proxiedAgenda = new Proxy(agenda, {});

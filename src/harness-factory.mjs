@@ -1437,6 +1437,10 @@ function factoryBenchmarkFrontierValidationStabilityResearchAgendaItem({
       independentCount: pointScore.independentCount,
       stable: pointScore.stable,
       stabilityStatus: pointScore.stabilityStatus,
+      campaignStatuses: objectFreeze(arrayMap(
+        pointScore.campaignStatuses,
+        (campaignStatus) => objectFreeze({ ...campaignStatus })
+      )),
       dataOnly: true,
       authorityTransferred: false
     })
@@ -1671,6 +1675,116 @@ function isValidHarnessFactoryBenchmarkFrontierValidationStabilityResearchAgenda
       : expectedPointStable
         ? HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.STABLE
         : HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.UNSTABLE;
+    const pointCampaignStatuses = point?.campaignStatuses;
+    const pointCampaignArchives = arrayIsArray(pointCampaignStatuses)
+      ? arrayMap(
+        pointCampaignStatuses,
+        ({ campaignArchive }) => `${campaignArchive?.sequence}\u0000${campaignArchive?.hash}`
+      )
+      : [];
+    const pointPassedCount = arrayIsArray(pointCampaignStatuses)
+      ? arrayFilter(
+        pointCampaignStatuses,
+        ({ status }) => status
+          === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.PASSED
+      ).length
+      : 0;
+    const pointFailedCount = arrayIsArray(pointCampaignStatuses)
+      ? arrayFilter(
+        pointCampaignStatuses,
+        ({ status }) => status
+          === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.FAILED
+      ).length
+      : 0;
+    const pointIncompleteCount = arrayIsArray(pointCampaignStatuses)
+      ? arrayFilter(
+        pointCampaignStatuses,
+        ({ status }) => status
+          === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE
+      ).length
+      : 0;
+    const pointCompleteCount = arrayIsArray(pointCampaignStatuses)
+      ? arrayFilter(pointCampaignStatuses, ({ complete }) => complete).length
+      : 0;
+    const pointReproducibleCount = arrayIsArray(pointCampaignStatuses)
+      ? arrayFilter(
+        pointCampaignStatuses,
+        ({ reproducible }) => reproducible
+      ).length
+      : 0;
+    const pointIndependentCount = arrayIsArray(pointCampaignStatuses)
+      ? arrayFilter(
+        pointCampaignStatuses,
+        ({ independent }) => independent
+      ).length
+      : 0;
+    const pointValidationArchiveCount = arrayIsArray(pointCampaignStatuses)
+      ? arrayFilter(
+        pointCampaignStatuses,
+        ({ validationArchive }) => validationArchive !== null
+      ).length
+      : 0;
+    const isValidPointCampaignStatus = (campaignStatus) => {
+      const expectedStatus = campaignStatus?.validationArchive === null
+        ? HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE
+        : campaignStatus?.passed === true
+            && campaignStatus?.complete === true
+            && campaignStatus?.reproducible === true
+            && campaignStatus?.independent === true
+          ? HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.PASSED
+          : HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.FAILED;
+      const validationArchive = campaignStatus?.validationArchive;
+      return isPlainObject(campaignStatus)
+        && reflectOwnKeys(campaignStatus).length === 9
+        && validArchive(
+          campaignStatus.campaignArchive,
+          'harness-factory-benchmark-campaign'
+        )
+        && (
+          validationArchive === null
+          || validArchive(
+            validationArchive,
+            'harness-factory-benchmark-validation'
+          )
+        )
+        && (
+          validationArchive === null
+          || validationArchive.sequence > campaignStatus.campaignArchive.sequence
+        )
+        && arrayIncludes(
+          [
+            HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.FAILED,
+            HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE,
+            HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.PASSED
+          ],
+          campaignStatus.status
+        )
+        && typeof campaignStatus.passed === 'boolean'
+        && typeof campaignStatus.complete === 'boolean'
+        && typeof campaignStatus.reproducible === 'boolean'
+        && typeof campaignStatus.independent === 'boolean'
+        && campaignStatus.status === expectedStatus
+        && (
+          campaignStatus.status
+            === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE
+          ? validationArchive === null
+          : validationArchive !== null
+        )
+        && campaignStatus.dataOnly === true
+        && campaignStatus.authorityTransferred === false
+        && !arraySome(
+          [
+            'candidate',
+            'candidates',
+            'campaign',
+            'holdout',
+            'runner',
+            'actionReport',
+            'validations'
+          ],
+          (key) => arrayIncludes(reflectOwnKeys(campaignStatus), key)
+        );
+    };
     return isPlainObject(point)
       && typeof point.candidateId === 'string'
       && stringTrim(point.candidateId) !== ''
@@ -1706,6 +1820,31 @@ function isValidHarnessFactoryBenchmarkFrontierValidationStabilityResearchAgenda
       && point.stabilityStatus === expectedPointStatus
       && point.stabilityStatus
         === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.UNSTABLE
+      && arrayIsArray(pointCampaignStatuses)
+      && pointCampaignStatuses.length === point.campaignCount
+      && setSize(setFromArray(pointCampaignArchives)) === pointCampaignArchives.length
+      && arrayEvery(pointCampaignStatuses, isValidPointCampaignStatus)
+      && arrayEvery(
+        pointCampaignStatuses,
+        (campaignStatus, index) => index === 0
+          || campaignStatus.campaignArchive.sequence
+            > pointCampaignStatuses[index - 1].campaignArchive.sequence
+      )
+      && pointCampaignStatuses.length === campaignStatuses.length
+      && arrayEvery(
+        pointCampaignStatuses,
+        (campaignStatus, index) => sameArchiveLocator(
+          campaignStatus.campaignArchive,
+          campaignStatuses[index].campaignArchive
+        )
+      )
+      && pointValidationArchiveCount <= point.validationCount
+      && pointPassedCount === point.passedCount
+      && pointFailedCount === point.failedCount
+      && pointIncompleteCount === point.incompleteCount
+      && pointCompleteCount === point.completeCount
+      && pointReproducibleCount === point.reproducibleCount
+      && pointIndependentCount === point.independentCount
       && point.dataOnly === true
       && point.authorityTransferred === false
       && !arraySome(
