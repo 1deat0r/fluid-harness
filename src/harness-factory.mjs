@@ -211,6 +211,16 @@ const BENCHMARK_VALIDATION_RESEARCH_OPTIONS_KEYS = objectFreeze([
   'holdoutSkepticBudget',
   'archive'
 ]);
+const BENCHMARK_FRONTIER_VALIDATION_RESEARCH_OPTIONS_KEYS = objectFreeze([
+  'campaign',
+  'points',
+  'cases',
+  'holdoutCases',
+  'holdoutProductionBudget',
+  'holdoutResearchBudget',
+  'holdoutSkepticBudget',
+  'archive'
+]);
 const BENCHMARK_CAMPAIGN_FRONTIER_VALIDATION_OPTIONS_KEYS = objectFreeze([
   'campaign',
   'points',
@@ -249,10 +259,12 @@ const TRUSTED_HARNESS_FACTORY_BENCHMARK_VALIDATION_SCORECARDS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_VALIDATION_STABILITIES = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATIONS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARDS = weakSetCreate();
+const TRUSTED_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_RESEARCH_EXECUTIONS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_VALIDATION_FACTORIES = weakMapCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_VALIDATION_CAMPAIGNS = weakMapCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_FACTORIES = weakMapCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_CAMPAIGNS = weakMapCreate();
+const TRUSTED_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_RESEARCH_EXECUTION_FACTORIES = weakMapCreate();
 const ARCHIVED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_VALIDATIONS = weakSetCreate();
 const ARCHIVED_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATIONS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_VALIDATIONS = weakSetCreate();
@@ -2302,6 +2314,86 @@ function validateFactoryBenchmarkCampaignFrontier({
     validations,
     token: FACTORY_TOKEN
   });
+}
+
+function requireTrustedBenchmarkFrontierValidationResearchPoints(
+  points,
+  target,
+  campaign
+) {
+  const missingPoints = target.frontierValidation.missingPoints;
+  if (!arrayIsArray(points) || points.length === 0) {
+    throw new TypeError(
+      'Harness Factory frontier validation research requires missing points'
+    );
+  }
+  if (points.length !== missingPoints.length) {
+    throw new Error(
+      'Harness Factory frontier validation research points must cover exactly the target missing points'
+    );
+  }
+  const normalized = arrayMap(points, (point, index) => {
+    requireDataObject(
+      point,
+      `Harness Factory frontier validation research points[${index}]`,
+      ['candidate', 'levelId']
+    );
+    if (!isTrustedAgentArchitectureCandidate(point.candidate)) {
+      throw new TypeError(
+        'Harness Factory frontier validation research points require trusted candidates'
+      );
+    }
+    if (
+      weakSetHas(DISPOSED_ARCHITECTURE_CANDIDATES, point.candidate)
+      || weakSetHas(PROTECTED_ADOPTED_CANDIDATES, point.candidate)
+    ) {
+      throw new TypeError(
+        'Harness Factory frontier validation research points require fresh unretired candidates'
+      );
+    }
+    const levelId = requireNonEmptyString(
+      point.levelId,
+      `Harness Factory frontier validation research points[${index}].levelId`
+    );
+    if (arrayFind(
+      campaign.frontier,
+      (frontierPoint) => frontierPoint.architectureId === point.candidate.id
+        && frontierPoint.levelId === levelId
+    ) === undefined) {
+      throw new Error(
+        'Harness Factory frontier validation research point is not in the archived frontier'
+      );
+    }
+    return objectFreeze({
+      candidate: point.candidate,
+      levelId
+    });
+  });
+  const pointKeys = arrayMap(
+    normalized,
+    ({ candidate, levelId }) => `${candidate.id}\u0000${levelId}`
+  );
+  const missingPointKeys = arrayMap(
+    missingPoints,
+    ({ candidateId, levelId }) => `${candidateId}\u0000${levelId}`
+  );
+  if (
+    setSize(setFromArray(pointKeys)) !== pointKeys.length
+    || jsonStringify(arraySort(pointKeys, stringLocaleCompare))
+      !== jsonStringify(arraySort(missingPointKeys, stringLocaleCompare))
+  ) {
+    throw new Error(
+      'Harness Factory frontier validation research points must match the target missing points'
+    );
+  }
+  return objectFreeze(arrayMap(
+    missingPoints,
+    (missingPoint) => arrayFind(
+      normalized,
+      ({ candidate, levelId }) => candidate.id === missingPoint.candidateId
+        && levelId === missingPoint.levelId
+    )
+  ));
 }
 
 function sameFactoryRecommendation(left, right) {
@@ -5067,6 +5159,152 @@ export function isTrustedHarnessFactoryBenchmarkFrontierValidationReport(report)
       === HarnessFactoryBenchmarkFrontierValidationReport.prototype;
 }
 
+export class HarnessFactoryBenchmarkFrontierValidationResearchExecutionReport {
+  constructor({
+    factory,
+    target,
+    campaign,
+    validations,
+    scorecard,
+    token
+  }) {
+    const missingPoints = target?.frontierValidation?.missingPoints;
+    const missingPointKeys = arrayIsArray(missingPoints)
+      ? arrayMap(
+        missingPoints,
+        ({ candidateId, levelId }) => `${candidateId}\u0000${levelId}`
+      )
+      : [];
+    const validationKeys = arrayIsArray(validations)
+      ? arrayMap(
+        validations,
+        ({ candidateId, levelId }) => `${candidateId}\u0000${levelId}`
+      )
+      : [];
+    const score = scorecard?.batchScores === undefined
+      ? undefined
+      : arrayFind(
+        scorecard.batchScores,
+        ({ campaignArchive }) => sameArchiveLocator(
+          campaignArchive,
+          campaign?.archive
+        )
+      );
+    const validationStatus = arrayIsArray(validations)
+      && arrayEvery(
+        validations,
+        ({ status }) => status === HARNESS_FACTORY_HOLDOUT_STATUSES.PASSED
+      )
+      ? HARNESS_FACTORY_HOLDOUT_STATUSES.PASSED
+      : HARNESS_FACTORY_HOLDOUT_STATUSES.FAILED;
+    if (
+      token !== FACTORY_TOKEN
+      || !isTrustedHarnessFactory(factory)
+      || !isTrustedHarnessFactoryResearchAgendaItem(target, factory)
+      || target.target
+        !== HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION
+      || target.frontierValidation?.status
+        !== HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE
+      || !isTrustedHarnessFactoryBenchmarkCampaignReport(campaign)
+      || weakMapGet(TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_FACTORIES, campaign)
+        !== factory
+      || campaign.archived !== true
+      || campaign.archive === null
+      || !arrayIsArray(validations)
+      || validations.length !== missingPointKeys.length
+      || validations.length === 0
+      || setSize(setFromArray(missingPointKeys)) !== missingPointKeys.length
+      || setSize(setFromArray(validationKeys)) !== validationKeys.length
+      || jsonStringify(arraySort(validationKeys, stringLocaleCompare))
+        !== jsonStringify(arraySort(missingPointKeys, stringLocaleCompare))
+      || !arrayEvery(
+        validations,
+        (validation) => isTrustedHarnessFactoryBenchmarkCampaignValidationReport(
+          validation
+        )
+          && weakMapGet(
+            TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_VALIDATION_FACTORIES,
+            validation
+          ) === factory
+          && weakMapGet(
+            TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_VALIDATION_CAMPAIGNS,
+            validation
+          ) === campaign
+          && validation.archived === true
+          && isPlainObject(validation.archive)
+          && validation.archive.kind === 'harness-factory-benchmark-validation'
+          && isSafeInteger(validation.archive.sequence)
+          && validation.archive.sequence > campaign.archive.sequence
+          && typeof validation.archive.hash === 'string'
+          && stringTrim(validation.archive.hash) !== ''
+          && sameArchiveLocator(validation.campaignArchive, campaign.archive)
+          && arrayIncludes(campaign.frontier, validation.campaignPoint)
+          && arrayIncludes(
+            missingPointKeys,
+            `${validation.candidateId}\u0000${validation.levelId}`
+          )
+      )
+      || !isTrustedHarnessFactoryBenchmarkFrontierValidationScorecardReport(scorecard)
+      || scorecard.factoryId !== factory.factoryId
+      || score === undefined
+      || score.status
+        === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE
+      || score.coveredCount !== score.frontierCount
+      || score.missingPoints.length !== 0
+      || scorecard.batchScores.length === 0
+    ) {
+      throw new TypeError(
+        'Harness Factory frontier validation research execution requires matching trusted evidence'
+      );
+    }
+    this.factoryId = factory.factoryId;
+    this.targetId = target.id;
+    this.campaignArchive = archiveLocator(campaign.archive);
+    this.validations = objectFreeze(arraySlice(validations));
+    this.validationArchives = objectFreeze(
+      arrayMap(validations, ({ archive }) => archiveLocator(archive))
+    );
+    this.validationCount = validations.length;
+    this.passedCount = arrayFilter(
+      validations,
+      ({ status }) => status === HARNESS_FACTORY_HOLDOUT_STATUSES.PASSED
+    ).length;
+    this.failedCount = this.validationCount - this.passedCount;
+    this.status = validationStatus;
+    this.frontierStatus = score.status;
+    this.frontierCoverageRate = score.frontierCoverageRate;
+    this.remainingMissingPoints = objectFreeze(arrayMap(
+      score.missingPoints,
+      ({ candidateId, levelId }) => objectFreeze({ candidateId, levelId })
+    ));
+    this.targetResolved = score.status
+      !== HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE;
+    this.archived = true;
+    this.dataOnly = true;
+    this.authorityTransferred = false;
+    weakSetAdd(TRUSTED_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_RESEARCH_EXECUTIONS, this);
+    weakMapSet(
+      TRUSTED_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_RESEARCH_EXECUTION_FACTORIES,
+      this,
+      factory
+    );
+    objectFreeze(this);
+  }
+}
+
+export function isTrustedHarnessFactoryBenchmarkFrontierValidationResearchExecutionReport(
+  report
+) {
+  return typeof report === 'object'
+    && report !== null
+    && weakSetHas(
+      TRUSTED_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_RESEARCH_EXECUTIONS,
+      report
+    )
+    && objectGetPrototypeOf(report)
+      === HarnessFactoryBenchmarkFrontierValidationResearchExecutionReport.prototype;
+}
+
 export class HarnessFactoryValidationReport {
   constructor({
     factory,
@@ -5692,6 +5930,113 @@ export class HarnessFactory {
     return this.archiveBenchmarkCampaignValidation(validation);
   }
 
+  executeBenchmarkFrontierValidationResearch(target, options = {}) {
+    requireDataObject(
+      options,
+      'Harness Factory frontier validation research execution options',
+      BENCHMARK_FRONTIER_VALIDATION_RESEARCH_OPTIONS_KEYS
+    );
+    if (!isTrustedHarnessFactory(this)) {
+      throw new TypeError('Harness Factory requires an exact trusted factory');
+    }
+    if (!isTrustedHarnessFactoryResearchAgendaItem(target, this)) {
+      throw new TypeError(
+        'Harness Factory frontier validation research requires an exact agenda item from this factory'
+      );
+    }
+    const currentAgenda = this.researchAgenda();
+    const currentTarget = arrayFind(
+      currentAgenda.items,
+      ({ id }) => id === target.id
+    );
+    if (
+      currentTarget === undefined
+      || jsonStringify(currentTarget) !== jsonStringify(target)
+    ) {
+      throw new Error(
+        'Harness Factory frontier validation research target is stale'
+      );
+    }
+    if (
+      target.target
+        !== HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION
+    ) {
+      throw new Error(
+        'Harness Factory frontier validation research target is not executable by the frontier bridge'
+      );
+    }
+    const {
+      campaign,
+      points,
+      cases,
+      holdoutCases,
+      holdoutProductionBudget,
+      holdoutResearchBudget,
+      holdoutSkepticBudget,
+      archive = true
+    } = options;
+    if (archive !== true) {
+      throw new TypeError(
+        'Harness Factory frontier validation research execution requires archive true'
+      );
+    }
+    if (
+      !isTrustedHarnessFactoryBenchmarkCampaignReport(campaign)
+      || weakMapGet(
+        TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_FACTORIES,
+        campaign
+      ) !== this
+      || campaign.archived !== true
+      || campaign.archive === null
+    ) {
+      throw new TypeError(
+        'Harness Factory frontier validation research requires an exact archived campaign from this factory'
+      );
+    }
+    if (
+      !sameArchiveLocator(
+        campaign.archive,
+        target.frontierValidation.campaignArchive
+      )
+    ) {
+      throw new Error(
+        'Harness Factory frontier validation research campaign does not match the target'
+      );
+    }
+    const normalizedPoints = requireTrustedBenchmarkFrontierValidationResearchPoints(
+      points,
+      target,
+      campaign
+    );
+    const validations = arrayMap(
+      normalizedPoints,
+      ({ candidate, levelId }) => validateFactoryBenchmarkCampaign({
+        factory: this,
+        campaign,
+        candidate,
+        levelId,
+        cases,
+        holdoutCases,
+        holdoutProductionBudget,
+        holdoutResearchBudget,
+        holdoutSkepticBudget
+      })
+    );
+    const archivedValidations = arrayMap(
+      validations,
+      (validation) => this.archiveBenchmarkCampaignValidation(validation)
+    );
+    const scorecard = this.benchmarkFrontierValidationScorecard();
+    return new HarnessFactoryBenchmarkFrontierValidationResearchExecutionReport({
+      factory: this,
+      target,
+      campaign,
+      validations: archivedValidations,
+      scorecard,
+      token: FACTORY_TOKEN
+    });
+  }
+
   benchmark(options = {}) {
     requireDataObject(
       options,
@@ -6144,6 +6489,7 @@ objectFreeze(HarnessFactoryBenchmarkValidationStabilityReport.prototype);
 objectFreeze(HarnessFactoryBenchmarkFrontierValidationScorecardReport.prototype);
 objectFreeze(HarnessFactoryBenchmarkCampaignValidationReport.prototype);
 objectFreeze(HarnessFactoryBenchmarkFrontierValidationReport.prototype);
+objectFreeze(HarnessFactoryBenchmarkFrontierValidationResearchExecutionReport.prototype);
 objectFreeze(HarnessFactoryValidationReport.prototype);
 objectFreeze(HarnessFactoryReport.prototype);
 objectFreeze(HarnessFactory.prototype);
