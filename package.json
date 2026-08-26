@@ -234,6 +234,8 @@
     "harness-factory-benchmark-frontier-validation-memory-improvement-boundary": "node scripts/check-harness-factory-benchmark-frontier-validation-memory-improvement-boundary.mjs",
     "harness-factory-benchmark-frontier-validation-stability": "node scripts/check-harness-factory-benchmark-frontier-validation-stability.mjs",
     "harness-factory-benchmark-frontier-validation-stability-boundary": "node scripts/check-harness-factory-benchmark-frontier-validation-stability-boundary.mjs",
+    "harness-factory-benchmark-frontier-validation-stability-research-agenda": "node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-agenda.mjs",
+    "harness-factory-benchmark-frontier-validation-stability-research-agenda-boundary": "node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-agenda-boundary.mjs",
     "harness-factory-campaign-memory-improvement": "node scripts/check-harness-factory-campaign-memory-improvement.mjs",
     "harness-factory-campaign-memory-improvement-boundary": "node scripts/check-harness-factory-campaign-memory-improvement-boundary.mjs",
     "memory-ledger-adversarial-lineage-planner": "node scripts/check-memory-ledger-adversarial-lineage-planner.mjs",

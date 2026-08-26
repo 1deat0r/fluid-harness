@@ -7,7 +7,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 241.831337 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 239.649421 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -17,7 +17,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=486 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=488 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -42,7 +42,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.007},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.32},{"l
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.676},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.287},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2358,3 +2358,13 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
   CHECK: node scripts/check-harness-factory-benchmark-frontier-validation-stability-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_BOUNDARY_OK emptyAccepted=true forgedRejected=true proxiedRejected=true accessorRejected=true proxyFactoryRejected=true unstableDetected=true foreignExcluded=true tamperedRejecte
+
+- [x] G472: unstable repeated frontier validation becomes a bounded high-priority research agenda item and disappears after the repeated frontier recovers to stable evidence
+  CHECK: node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-agenda.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_AGENDA_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_AGENDA_OK unstableDetected=UNSTABLE priority=455 campaigns=2 incompleteSuppressed=true stabilitySuppressed=true ledgerUnchanged=true dataOnly=true authorityTransferred=f
+
+- [x] G473: frontier-stability research items reject forged, proxied, accessor-bearing, foreign, mutable, tampered, and non-executable paths without authority transfer
+  CHECK: node scripts/check-harness-factory-benchmark-frontier-validation-stability-research-agenda-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_AGENDA_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH_AGENDA_BOUNDARY_OK forgedRejected=true proxiedRejected=true accessorRejected=true targetForgedRejected=true targetProxiedRejected=true nonExecutableRejected=true foreign

@@ -106,6 +106,7 @@ export const HARNESS_FACTORY_RESEARCH_TARGETS = objectFreeze({
   COMPLETE_BENCHMARK_FRONTIER_VALIDATION: 'COMPLETE_BENCHMARK_FRONTIER_VALIDATION',
   IMPROVE_LATEST_GENERATION: 'IMPROVE_LATEST_GENERATION',
   INVESTIGATE_BENCHMARK_VALIDATION: 'INVESTIGATE_BENCHMARK_VALIDATION',
+  INVESTIGATE_BENCHMARK_FRONTIER_STABILITY: 'INVESTIGATE_BENCHMARK_FRONTIER_STABILITY',
   INVESTIGATE_SKEPTIC_WEAKNESS: 'INVESTIGATE_SKEPTIC_WEAKNESS',
   RECOVER_FAILED_HOLDOUT: 'RECOVER_FAILED_HOLDOUT',
   TEST_TRANSFER_GAP: 'TEST_TRANSFER_GAP',
@@ -115,6 +116,7 @@ const HARNESS_FACTORY_RESEARCH_TARGET_VALUES = objectFreeze([
   HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION,
   HARNESS_FACTORY_RESEARCH_TARGETS.IMPROVE_LATEST_GENERATION,
   HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_VALIDATION,
+  HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY,
   HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_SKEPTIC_WEAKNESS,
   HARNESS_FACTORY_RESEARCH_TARGETS.RECOVER_FAILED_HOLDOUT,
   HARNESS_FACTORY_RESEARCH_TARGETS.TEST_TRANSFER_GAP,
@@ -988,6 +990,7 @@ function factoryRecommendationFromHistory({ factory, history, validations = [] }
 
 const HARNESS_FACTORY_RESEARCH_TARGET_PRIORITIES = objectFreeze({
   [HARNESS_FACTORY_RESEARCH_TARGETS.COMPLETE_BENCHMARK_FRONTIER_VALIDATION]: 460,
+  [HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY]: 455,
   [HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_VALIDATION]: 450,
   [HARNESS_FACTORY_RESEARCH_TARGETS.RECOVER_FAILED_HOLDOUT]: 400,
   [HARNESS_FACTORY_RESEARCH_TARGETS.VALIDATE_UNSEEN_HOLDOUT]: 300,
@@ -1397,12 +1400,350 @@ function isValidHarnessFactoryBenchmarkFrontierValidationResearchAgendaItem(item
     );
 }
 
+function factoryBenchmarkFrontierValidationStabilityResearchAgendaItem({
+  factory,
+  score,
+  reason
+}) {
+  const campaignStatuses = objectFreeze(arrayMap(
+    score.campaignStatuses,
+    (campaignStatus) => objectFreeze({ ...campaignStatus })
+  ));
+  const frontierStability = objectFreeze({
+    frontierFingerprint: score.frontierFingerprint,
+    frontierCount: score.frontierCount,
+    validationCount: score.validationCount,
+    campaignCount: score.campaignCount,
+    passedCount: score.passedCount,
+    failedCount: score.failedCount,
+    incompleteCount: score.incompleteCount,
+    passRate: score.passRate,
+    completeCount: score.completeCount,
+    reproducibleCount: score.reproducibleCount,
+    independentCount: score.independentCount,
+    stable: score.stable,
+    stabilityStatus: score.stabilityStatus,
+    firstCampaignArchive: score.firstCampaignArchive,
+    latestCampaignArchive: score.latestCampaignArchive,
+    firstValidationArchive: score.firstValidationArchive,
+    latestValidationArchive: score.latestValidationArchive,
+    campaignStatuses,
+    dataOnly: true,
+    authorityTransferred: false
+  });
+  const benchmark = objectFreeze({
+    frontierFingerprint: score.frontierFingerprint,
+    frontierCount: score.frontierCount,
+    campaignCount: score.campaignCount,
+    firstCampaignArchive: score.firstCampaignArchive,
+    latestCampaignArchive: score.latestCampaignArchive
+  });
+  return objectFreeze({
+    id: `harness-factory-research:${HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY}:${score.frontierFingerprint}`,
+    factoryId: factory.factoryId,
+    target: HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY,
+    priority: HARNESS_FACTORY_RESEARCH_TARGET_PRIORITIES[
+      HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY
+    ],
+    generation: null,
+    archive: score.latestCampaignArchive,
+    validationArchive: score.latestValidationArchive,
+    benchmark,
+    frontierStability,
+    holdoutStatus: score.stabilityStatus,
+    fitness: objectFreeze({
+      passRate: score.passRate,
+      completeRate: score.completeCount / score.campaignCount,
+      reproducibleRate: score.reproducibleCount / score.campaignCount,
+      independentRate: score.independentCount / score.campaignCount
+    }),
+    reason: requireNonEmptyString(
+      reason,
+      'Harness Factory frontier stability research agenda reason'
+    ),
+    dataOnly: true,
+    authorityTransferred: false
+  });
+}
+
+function isValidHarnessFactoryBenchmarkFrontierValidationStabilityResearchAgendaItem(
+  item,
+  factory
+) {
+  const benchmark = item?.benchmark;
+  const detail = item?.frontierStability;
+  const campaignStatuses = detail?.campaignStatuses;
+  const validArchive = (archive, kind) => isPlainObject(archive)
+    && reflectOwnKeys(archive).length === 3
+    && archive.kind === kind
+    && isSafeInteger(archive.sequence)
+    && archive.sequence > 0
+    && typeof archive.hash === 'string'
+    && stringTrim(archive.hash) !== '';
+  const expectedStable = detail?.campaignCount >= 2
+    && detail?.passedCount === detail?.campaignCount
+    && detail?.completeCount === detail?.campaignCount
+    && detail?.reproducibleCount === detail?.campaignCount
+    && detail?.independentCount === detail?.campaignCount;
+  const expectedStatus = detail?.campaignCount < 2
+    ? HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.INSUFFICIENT
+    : expectedStable
+      ? HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.STABLE
+      : HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.UNSTABLE;
+  const isValidCampaignStatus = (campaignStatus) => {
+    const expectedCampaignStatus = campaignStatus?.coveredCount
+        < campaignStatus?.frontierCount
+      ? HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE
+      : campaignStatus?.passedCount === campaignStatus?.coveredCount
+          && campaignStatus?.complete === true
+          && campaignStatus?.reproducible === true
+          && campaignStatus?.independent === true
+        ? HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.PASSED
+        : HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.FAILED;
+    return isPlainObject(campaignStatus)
+      && validArchive(
+        campaignStatus.campaignArchive,
+        'harness-factory-benchmark-campaign'
+      )
+      && isSafeInteger(campaignStatus.frontierCount)
+      && campaignStatus.frontierCount > 0
+      && isSafeInteger(campaignStatus.validationCount)
+      && campaignStatus.validationCount > 0
+      && isSafeInteger(campaignStatus.coveredCount)
+      && campaignStatus.coveredCount > 0
+      && campaignStatus.coveredCount <= campaignStatus.frontierCount
+      && campaignStatus.validationCount >= campaignStatus.coveredCount
+      && isFiniteNumber(campaignStatus.frontierCoverageRate)
+      && campaignStatus.frontierCoverageRate >= 0
+      && campaignStatus.frontierCoverageRate <= 1
+      && campaignStatus.frontierCoverageRate
+        === campaignStatus.coveredCount / campaignStatus.frontierCount
+      && isSafeInteger(campaignStatus.duplicateValidationCount)
+      && campaignStatus.duplicateValidationCount >= 0
+      && campaignStatus.duplicateValidationCount
+        === campaignStatus.validationCount - campaignStatus.coveredCount
+      && isSafeInteger(campaignStatus.passedCount)
+      && campaignStatus.passedCount >= 0
+      && campaignStatus.passedCount <= campaignStatus.coveredCount
+      && isSafeInteger(campaignStatus.failedCount)
+      && campaignStatus.failedCount >= 0
+      && campaignStatus.failedCount <= campaignStatus.coveredCount
+      && campaignStatus.passedCount + campaignStatus.failedCount
+        === campaignStatus.coveredCount
+      && isFiniteNumber(campaignStatus.passRate)
+      && campaignStatus.passRate >= 0
+      && campaignStatus.passRate <= 1
+      && campaignStatus.passRate
+        === campaignStatus.passedCount / campaignStatus.coveredCount
+      && typeof campaignStatus.complete === 'boolean'
+      && typeof campaignStatus.reproducible === 'boolean'
+      && typeof campaignStatus.independent === 'boolean'
+      && (!campaignStatus.complete
+        || campaignStatus.coveredCount === campaignStatus.frontierCount)
+      && (!campaignStatus.reproducible || campaignStatus.complete)
+      && (!campaignStatus.independent || campaignStatus.complete)
+      && campaignStatus.status === expectedCampaignStatus
+      && validArchive(
+        campaignStatus.firstValidationArchive,
+        'harness-factory-benchmark-validation'
+      )
+      && campaignStatus.firstValidationArchive.sequence
+        > campaignStatus.campaignArchive.sequence
+      && validArchive(
+        campaignStatus.latestValidationArchive,
+        'harness-factory-benchmark-validation'
+      )
+      && campaignStatus.latestValidationArchive.sequence
+        >= campaignStatus.firstValidationArchive.sequence
+      && campaignStatus.dataOnly === true
+      && campaignStatus.authorityTransferred === false
+      && !arraySome(
+        [
+          'candidate',
+          'candidates',
+          'campaign',
+          'holdout',
+          'runner',
+          'actionReport',
+          'validations'
+        ],
+        (key) => arrayIncludes(reflectOwnKeys(campaignStatus), key)
+      );
+  };
+  const campaignArchives = arrayIsArray(campaignStatuses)
+    ? arrayMap(
+      campaignStatuses,
+      ({ campaignArchive }) => `${campaignArchive?.sequence}\u0000${campaignArchive?.hash}`
+    )
+    : [];
+  const countedValidationCount = arrayIsArray(campaignStatuses)
+    ? arrayReduce(
+      campaignStatuses,
+      (total, campaignStatus) => total + (campaignStatus?.validationCount ?? 0),
+      0
+    )
+    : 0;
+  const countedPassedCount = arrayIsArray(campaignStatuses)
+    ? arrayFilter(
+      campaignStatuses,
+      ({ status }) => status
+        === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.PASSED
+    ).length
+    : 0;
+  const countedFailedCount = arrayIsArray(campaignStatuses)
+    ? arrayFilter(
+      campaignStatuses,
+      ({ status }) => status
+        === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.FAILED
+    ).length
+    : 0;
+  const countedIncompleteCount = arrayIsArray(campaignStatuses)
+    ? arrayFilter(
+      campaignStatuses,
+      ({ status }) => status
+        === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_SCORECARD_STATUSES.INCOMPLETE
+    ).length
+    : 0;
+  const countedCompleteCount = arrayIsArray(campaignStatuses)
+    ? arrayFilter(campaignStatuses, ({ complete }) => complete).length
+    : 0;
+  const countedReproducibleCount = arrayIsArray(campaignStatuses)
+    ? arrayFilter(campaignStatuses, ({ reproducible }) => reproducible).length
+    : 0;
+  const countedIndependentCount = arrayIsArray(campaignStatuses)
+    ? arrayFilter(campaignStatuses, ({ independent }) => independent).length
+    : 0;
+  const forbiddenKeys = [
+    'candidate',
+    'candidates',
+    'campaign',
+    'holdout',
+    'runner',
+    'actionReport',
+    'validations'
+  ];
+  return isPlainObject(item)
+    && item.factoryId === factory.factoryId
+    && item.id === `harness-factory-research:${HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY}:${detail?.frontierFingerprint}`
+    && item.target === HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY
+    && item.priority === HARNESS_FACTORY_RESEARCH_TARGET_PRIORITIES[
+      HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY
+    ]
+    && item.generation === null
+    && validArchive(item.archive, 'harness-factory-benchmark-campaign')
+    && validArchive(item.validationArchive, 'harness-factory-benchmark-validation')
+    && isPlainObject(benchmark)
+    && reflectOwnKeys(benchmark).length === 5
+    && typeof benchmark.frontierFingerprint === 'string'
+    && stringTrim(benchmark.frontierFingerprint) !== ''
+    && benchmark.frontierFingerprint === detail?.frontierFingerprint
+    && benchmark.frontierCount === detail?.frontierCount
+    && benchmark.campaignCount === detail?.campaignCount
+    && sameArchiveLocator(benchmark.firstCampaignArchive, detail?.firstCampaignArchive)
+    && sameArchiveLocator(benchmark.latestCampaignArchive, detail?.latestCampaignArchive)
+    && isPlainObject(detail)
+    && typeof detail.frontierFingerprint === 'string'
+    && stringTrim(detail.frontierFingerprint) !== ''
+    && isSafeInteger(detail.frontierCount)
+    && detail.frontierCount > 0
+    && isSafeInteger(detail.validationCount)
+    && detail.validationCount > 0
+    && isSafeInteger(detail.campaignCount)
+    && detail.campaignCount >= 2
+    && isSafeInteger(detail.passedCount)
+    && detail.passedCount >= 0
+    && isSafeInteger(detail.failedCount)
+    && detail.failedCount >= 0
+    && isSafeInteger(detail.incompleteCount)
+    && detail.incompleteCount >= 0
+    && detail.passedCount + detail.failedCount + detail.incompleteCount
+      === detail.campaignCount
+    && isFiniteNumber(detail.passRate)
+    && detail.passRate >= 0
+    && detail.passRate <= 1
+    && detail.passRate === detail.passedCount / detail.campaignCount
+    && isSafeInteger(detail.completeCount)
+    && detail.completeCount >= 0
+    && detail.completeCount <= detail.campaignCount
+    && isSafeInteger(detail.reproducibleCount)
+    && detail.reproducibleCount >= 0
+    && detail.reproducibleCount <= detail.campaignCount
+    && isSafeInteger(detail.independentCount)
+    && detail.independentCount >= 0
+    && detail.independentCount <= detail.campaignCount
+    && detail.stable === expectedStable
+    && detail.stable === false
+    && detail.stabilityStatus === expectedStatus
+    && detail.stabilityStatus
+      === HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.UNSTABLE
+    && validArchive(detail.firstCampaignArchive, 'harness-factory-benchmark-campaign')
+    && validArchive(detail.latestCampaignArchive, 'harness-factory-benchmark-campaign')
+    && detail.latestCampaignArchive.sequence >= detail.firstCampaignArchive.sequence
+    && validArchive(detail.firstValidationArchive, 'harness-factory-benchmark-validation')
+    && validArchive(detail.latestValidationArchive, 'harness-factory-benchmark-validation')
+    && detail.latestValidationArchive.sequence >= detail.firstValidationArchive.sequence
+    && sameArchiveLocator(item.archive, detail.latestCampaignArchive)
+    && sameArchiveLocator(item.validationArchive, detail.latestValidationArchive)
+    && arrayIsArray(campaignStatuses)
+    && campaignStatuses.length === detail.campaignCount
+    && setSize(setFromArray(campaignArchives)) === campaignArchives.length
+    && arrayEvery(campaignStatuses, isValidCampaignStatus)
+    && arrayEvery(
+      campaignStatuses,
+      (campaignStatus, index) => index === 0
+        || campaignStatus.campaignArchive.sequence
+          > campaignStatuses[index - 1].campaignArchive.sequence
+    )
+    && campaignStatuses[0].campaignArchive.sequence
+      === detail.firstCampaignArchive.sequence
+    && campaignStatuses[campaignStatuses.length - 1].campaignArchive.sequence
+      === detail.latestCampaignArchive.sequence
+    && campaignStatuses[0].firstValidationArchive.sequence
+      === detail.firstValidationArchive.sequence
+    && campaignStatuses[campaignStatuses.length - 1].latestValidationArchive.sequence
+      === detail.latestValidationArchive.sequence
+    && countedValidationCount === detail.validationCount
+    && countedPassedCount === detail.passedCount
+    && countedFailedCount === detail.failedCount
+    && countedIncompleteCount === detail.incompleteCount
+    && countedCompleteCount === detail.completeCount
+    && countedReproducibleCount === detail.reproducibleCount
+    && countedIndependentCount === detail.independentCount
+    && isPlainObject(item.fitness)
+    && reflectOwnKeys(item.fitness).length === 4
+    && item.fitness.passRate === detail.passRate
+    && item.fitness.completeRate === detail.completeCount / detail.campaignCount
+    && item.fitness.reproducibleRate
+      === detail.reproducibleCount / detail.campaignCount
+    && item.fitness.independentRate
+      === detail.independentCount / detail.campaignCount
+    && item.holdoutStatus === detail.stabilityStatus
+    && typeof item.reason === 'string'
+    && stringTrim(item.reason) !== ''
+    && item.dataOnly === true
+    && item.authorityTransferred === false
+    && detail.dataOnly === true
+    && detail.authorityTransferred === false
+    && !arraySome(
+      forbiddenKeys,
+      (key) => arrayIncludes(reflectOwnKeys(item), key)
+        || arrayIncludes(reflectOwnKeys(benchmark), key)
+        || arrayIncludes(reflectOwnKeys(detail), key)
+        || arrayIncludes(reflectOwnKeys(item.fitness), key)
+        || arraySome(
+          campaignStatuses,
+          (campaignStatus) => arrayIncludes(reflectOwnKeys(campaignStatus), key)
+        )
+    );
+}
+
 function factoryResearchAgendaFromHistory({
   factory,
   history,
   validations,
   benchmarkValidations = [],
   benchmarkFrontierValidationScorecard = null,
+  benchmarkFrontierValidationStability = null,
   maxItems
 }) {
   if (!isTrustedHarnessFactory(factory)) {
@@ -1430,6 +1771,19 @@ function factoryResearchAgendaFromHistory({
   ) {
     throw new TypeError(
       'Harness Factory research agenda requires verified frontier validation scorecard'
+    );
+  }
+  if (
+    benchmarkFrontierValidationStability !== null
+    && (
+      !isTrustedHarnessFactoryBenchmarkFrontierValidationStabilityReport(
+        benchmarkFrontierValidationStability
+      )
+      || benchmarkFrontierValidationStability.factoryId !== factory.factoryId
+    )
+  ) {
+    throw new TypeError(
+      'Harness Factory research agenda requires verified frontier validation stability'
     );
   }
   if (!isSafeInteger(maxItems) || maxItems <= 0) {
@@ -1467,6 +1821,28 @@ function factoryResearchAgendaFromHistory({
             factory,
             score,
             reason: 'an incomplete frontier needs fresh validation for every missing point'
+          })
+        );
+      }
+    );
+  }
+
+  if (benchmarkFrontierValidationStability !== null) {
+    arrayForEach(
+      benchmarkFrontierValidationStability.frontierScores,
+      (score) => {
+        if (
+          score.stabilityStatus
+            !== HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES.UNSTABLE
+        ) {
+          return;
+        }
+        arrayPush(
+          proposed,
+          factoryBenchmarkFrontierValidationStabilityResearchAgendaItem({
+            factory,
+            score,
+            reason: 'repeated frontier validation is unstable and needs a targeted variance investigation'
           })
         );
       }
@@ -4114,6 +4490,12 @@ export class HarnessFactoryResearchAgendaReport {
                   item,
                   factory
                 )
+                : item.target
+                  === HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY
+                  ? !isValidHarnessFactoryBenchmarkFrontierValidationStabilityResearchAgendaItem(
+                    item,
+                    factory
+                  )
                 : !isSafeInteger(item.generation)
                   || item.generation <= 0
                   || !isPlainObject(item.archive)
@@ -6355,12 +6737,18 @@ export class HarnessFactory {
         historicalLedger,
         this
       );
+    const benchmarkFrontierValidationStability =
+      factoryBenchmarkFrontierValidationStabilityFromLedger(
+        historicalLedger,
+        this
+      );
     return factoryResearchAgendaFromHistory({
       factory: this,
       history,
       validations,
       benchmarkValidations,
       benchmarkFrontierValidationScorecard,
+      benchmarkFrontierValidationStability,
       maxItems
     });
   }
