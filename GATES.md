@@ -7,7 +7,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 287.215526 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 254.917439 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -42,7 +42,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.109},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.358},{"
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.311},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.306},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2412,4 +2412,14 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G482: research-plan dispatch rejects forged, proxied, foreign, stale, malformed, accessor-bearing, and mutable requests before any unauthorized ledger mutation or authority transfer
   CHECK: node scripts/check-harness-factory-research-plan-execution-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_BOUNDARY_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_BOUNDARY_OK forgedRejected=true proxiedRejected=true foreignRejected=true accessorRejected=true staleRejected=true ledgerUnchangedAfterStale=true artifactFree=true authoritySuppressed=true
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_BOUNDARY_OK forgedRejected=true proxiedRejected=true foreignRejected=true accessorRejected=true staleRejected=true ledgerUnchangedAfterStale=true artifactFree=true receiptRoundTrip=true tamperRejected=true authoritySuppressed=true
+
+- [x] G483: successful executable research-plan dispatch returns a standardized frozen receipt, records only data-only result metadata in the hash chain, and restores a capped execution history without runtime artifacts
+  CHECK: node scripts/check-harness-factory-research-plan-execution.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_OK holdout=PASSED improvement=ADOPTED frontier=PASSED stability=STABLE operatorOnlyRejected=true
+
+- [x] G484: research-plan execution receipts reject finalized, forged, proxied, tampered, and artifact-bearing paths while preserving hash-chain integrity and authority suppression
+  CHECK: node scripts/check-harness-factory-research-plan-execution-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_BOUNDARY_OK forgedRejected=true proxiedRejected=true foreignRejected=true accessorRejected=true staleRejected=true ledgerUnchangedAfterStale=true artifactFree=true receiptRoundTrip=true tamperRejected=true authoritySuppressed=true

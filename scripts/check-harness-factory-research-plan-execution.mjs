@@ -10,10 +10,13 @@ import {
   HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_STATUSES,
   HARNESS_FACTORY_RECOMMENDATION_STATUSES,
   HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES,
+  HARNESS_FACTORY_RESEARCH_PLAN_RESULT_TYPES,
   HARNESS_FACTORY_RESEARCH_TARGETS,
   isTrustedHarnessFactoryBenchmarkFrontierValidationResearchExecutionReport,
   isTrustedHarnessFactoryBenchmarkFrontierValidationStabilityResearchExecutionReport,
   isTrustedHarnessFactoryReport,
+  isTrustedHarnessFactoryResearchPlanExecutionHistoryReport,
+  isTrustedHarnessFactoryResearchPlanExecutionReport,
   isTrustedHarnessFactoryValidationReport
 } from '../src/harness-factory.mjs';
 import { buildHarnessFactoryFixture } from './fixtures/harness-factory.mjs';
@@ -121,7 +124,7 @@ assert.equal(holdoutPlan.recommendationStatus, HARNESS_FACTORY_RECOMMENDATION_ST
 assert.equal(holdoutPlan.plans[0].target, HARNESS_FACTORY_RESEARCH_TARGETS.VALIDATE_UNSEEN_HOLDOUT);
 assert.equal(holdoutPlan.plans[0].bridge, HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.HOLDOUT_VALIDATION);
 const holdoutRecommendation = holdoutFixture.factory.recommend();
-const archivedHoldout = holdoutFixture.factory.executeResearchPlan(
+const holdoutReceipt = holdoutFixture.factory.executeResearchPlanReceipt(
   holdoutPlan.plans[0],
   {
     candidate: reconstructedCandidate(
@@ -133,10 +136,25 @@ const archivedHoldout = holdoutFixture.factory.executeResearchPlan(
     ...holdoutBudgets()
   }
 );
+const archivedHoldout = holdoutReceipt.result;
+assert.equal(isTrustedHarnessFactoryResearchPlanExecutionReport(holdoutReceipt), true);
+assert.equal(holdoutReceipt.resultType, HARNESS_FACTORY_RESEARCH_PLAN_RESULT_TYPES.VALIDATION);
+assert.equal(holdoutReceipt.resultStatus, 'PASSED');
+assert.deepEqual(holdoutReceipt.resultArchiveSequences, [2]);
+assert.equal(holdoutReceipt.archive.kind, 'harness-factory-research-plan-execution');
+assert.equal(holdoutReceipt.archive.sequence, 3);
+assert.equal(holdoutReceipt.archived, true);
+assert.equal(holdoutReceipt.dataOnly, true);
+assert.equal(holdoutReceipt.authorityTransferred, false);
 assert.equal(isTrustedHarnessFactoryValidationReport(archivedHoldout), true);
 assert.equal(archivedHoldout.archived, true);
 assert.equal(archivedHoldout.status, 'PASSED');
-assert.equal(holdoutFixture.ledger.length, 2);
+assert.equal(holdoutFixture.ledger.length, 3);
+const holdoutExecutionHistory = holdoutFixture.factory.researchPlanExecutions();
+assert.equal(isTrustedHarnessFactoryResearchPlanExecutionHistoryReport(holdoutExecutionHistory), true);
+assert.equal(holdoutExecutionHistory.consideredExecutionCount, 1);
+assert.equal(holdoutExecutionHistory.returnedExecutionCount, 1);
+assert.equal(holdoutExecutionHistory.executions[0].archive.sequence, 3);
 assert.equal(
   holdoutFixture.factory.recommend().status,
   HARNESS_FACTORY_RECOMMENDATION_STATUSES.IMPROVE_LATEST_GENERATION
@@ -185,7 +203,7 @@ assert.equal(isTrustedHarnessFactoryReport(improved), true);
 assert.equal(improved.status, 'ADOPTED');
 assert.equal(improved.generation, 2);
 assert.equal(improved.improvement.strictlyImproved, true);
-assert.equal(improvementFixture.ledger.length, 2);
+assert.equal(improvementFixture.ledger.length, 3);
 
 const frontierFixture = buildHarnessFactoryFixture({
   prefix: 'harness-factory-research-plan-execution-frontier',
@@ -237,7 +255,7 @@ assert.equal(
 assert.equal(frontierExecution.frontierStatus, 'PASSED');
 assert.equal(frontierExecution.targetResolved, true);
 assert.equal(frontierExecution.validationCount, 1);
-assert.equal(frontierFixture.ledger.length, 3);
+assert.equal(frontierFixture.ledger.length, 4);
 
 const stabilityFixture = buildHarnessFactoryFixture({
   prefix: 'harness-factory-research-plan-execution-stability',
@@ -307,7 +325,7 @@ assert.equal(
 );
 assert.equal(stabilityExecution.targetResolved, true);
 assert.equal(stabilityExecution.validationCount, 1);
-assert.equal(stabilityFixture.ledger.length, 6);
+assert.equal(stabilityFixture.ledger.length, 7);
 
 function transferGapCase() {
   return new AgentPlannerCase({

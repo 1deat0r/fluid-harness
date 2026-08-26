@@ -13,6 +13,7 @@ import {
 import {
   isTrustedHarnessFactoryBenchmarkCampaignReport,
   isTrustedHarnessFactoryBenchmarkCampaignValidationReport,
+  isTrustedHarnessFactoryResearchPlanExecutionReport,
   isTrustedHarnessFactoryValidationReport
 } from './harness-factory.mjs';
 import {
@@ -115,6 +116,7 @@ const LEDGER_KINDS = objectFreeze([
   'architecture-discovery',
   'harness-factory-benchmark-campaign',
   'harness-factory-benchmark-validation',
+  'harness-factory-research-plan-execution',
   'harness-factory-validation',
   'memory-aware-ensemble',
   'memory-aware-coordination',
@@ -508,6 +510,41 @@ const HARNESS_FACTORY_BENCHMARK_VALIDATION_KEYS = objectFreeze([
   'passed',
   'reproducible',
   'status'
+]);
+const HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_KEYS = objectFreeze([
+  'agendaItemId',
+  'authorityTransferred',
+  'bridge',
+  'dataOnly',
+  'factoryId',
+  'planId',
+  'resultArchiveSequences',
+  'resultStatus',
+  'resultType',
+  'target',
+  'targetResolved'
+]);
+const HARNESS_FACTORY_RESEARCH_PLAN_RESULT_TYPES = objectFreeze([
+  'HARNESS_FACTORY_REPORT',
+  'HARNESS_FACTORY_VALIDATION',
+  'HARNESS_FACTORY_BENCHMARK_VALIDATION',
+  'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_RESEARCH',
+  'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH'
+]);
+const HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_BRIDGES = objectFreeze([
+  'BENCHMARK_FRONTIER_VALIDATION',
+  'BENCHMARK_VALIDATION',
+  'FACTORY_RECOMMENDATION',
+  'FRONTIER_STABILITY',
+  'HOLDOUT_VALIDATION'
+]);
+const HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_TARGETS = objectFreeze([
+  'COMPLETE_BENCHMARK_FRONTIER_VALIDATION',
+  'IMPROVE_LATEST_GENERATION',
+  'INVESTIGATE_BENCHMARK_VALIDATION',
+  'INVESTIGATE_BENCHMARK_FRONTIER_STABILITY',
+  'RECOVER_FAILED_HOLDOUT',
+  'VALIDATE_UNSEEN_HOLDOUT'
 ]);
 const ARCHITECTURE_DISCOVERY_KEYS_WITH_FACTORY = objectFreeze([
   'adopted',
@@ -2266,6 +2303,91 @@ function normalizeHarnessFactoryValidationPayload(payload) {
   });
 }
 
+function normalizeHarnessFactoryResearchPlanExecutionPayload(payload) {
+  const normalized = snapshotData(payload);
+  if (
+    !isPlainObject(normalized)
+    || !hasExactKeys(normalized, HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_KEYS)
+  ) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory research plan execution payload has an invalid shape'
+    );
+  }
+  const agendaItemId = requireNonEmptyString(
+    normalized.agendaItemId,
+    'Evidence ledger Harness Factory research plan execution agendaItemId'
+  );
+  const planId = requireNonEmptyString(
+    normalized.planId,
+    'Evidence ledger Harness Factory research plan execution planId'
+  );
+  if (planId !== `harness-factory-research-plan:${agendaItemId}`) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory research plan execution plan identity is invalid'
+    );
+  }
+  const factoryId = requireNonEmptyString(
+    normalized.factoryId,
+    'Evidence ledger Harness Factory research plan execution factoryId'
+  );
+  const bridge = requireNonEmptyString(
+    normalized.bridge,
+    'Evidence ledger Harness Factory research plan execution bridge'
+  );
+  const target = requireNonEmptyString(
+    normalized.target,
+    'Evidence ledger Harness Factory research plan execution target'
+  );
+  const resultType = requireNonEmptyString(
+    normalized.resultType,
+    'Evidence ledger Harness Factory research plan execution resultType'
+  );
+  const resultStatus = requireNonEmptyString(
+    normalized.resultStatus,
+    'Evidence ledger Harness Factory research plan execution resultStatus'
+  );
+  if (
+    !arrayIncludes(HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_BRIDGES, bridge)
+    || !arrayIncludes(HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_TARGETS, target)
+    || !arrayIncludes(HARNESS_FACTORY_RESEARCH_PLAN_RESULT_TYPES, resultType)
+  ) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory research plan execution identity is invalid'
+    );
+  }
+  if (
+    normalized.dataOnly !== true
+    || normalized.authorityTransferred !== false
+    || typeof normalized.targetResolved !== 'boolean'
+    || !arrayIsArray(normalized.resultArchiveSequences)
+    || setSize(setFromArray(normalized.resultArchiveSequences))
+      !== normalized.resultArchiveSequences.length
+    || !arrayEvery(
+      normalized.resultArchiveSequences,
+      (sequence) => isSafeInteger(sequence) && sequence > 0
+    )
+  ) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory research plan execution proof boundary is invalid'
+    );
+  }
+  return objectFreeze({
+    agendaItemId,
+    authorityTransferred: false,
+    bridge,
+    dataOnly: true,
+    factoryId,
+    planId,
+    resultArchiveSequences: objectFreeze(
+      arraySort(arraySlice(normalized.resultArchiveSequences), (left, right) => left - right)
+    ),
+    resultStatus,
+    resultType,
+    target,
+    targetResolved: normalized.targetResolved
+  });
+}
+
 function normalizeHarnessFactoryBenchmarkCampaignPoint(value, index, candidateIds) {
   const normalized = snapshotData(value);
   if (
@@ -2958,6 +3080,32 @@ function harnessFactoryValidationPayload(report) {
     factoryId: report.factoryId,
     holdout: report.holdout,
     status: report.status
+  });
+}
+
+function harnessFactoryResearchPlanExecutionPayload(report) {
+  if (!isTrustedHarnessFactoryResearchPlanExecutionReport(report)) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory research plan execution entries require a trusted receipt'
+    );
+  }
+  if (report.archived !== false || report.archive !== null) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory research plan execution entries require a pending receipt'
+    );
+  }
+  return normalizeHarnessFactoryResearchPlanExecutionPayload({
+    agendaItemId: report.agendaItemId,
+    authorityTransferred: report.authorityTransferred,
+    bridge: report.bridge,
+    dataOnly: report.dataOnly,
+    factoryId: report.factoryId,
+    planId: report.planId,
+    resultArchiveSequences: report.resultArchiveSequences,
+    resultStatus: report.resultStatus,
+    resultType: report.resultType,
+    target: report.target,
+    targetResolved: report.targetResolved
   });
 }
 
@@ -6594,6 +6742,13 @@ export class EvidenceLedger {
     return this.#append('harness-factory-validation', payload);
   }
 
+  appendHarnessFactoryResearchPlanExecution(report) {
+    return this.#append(
+      'harness-factory-research-plan-execution',
+      harnessFactoryResearchPlanExecutionPayload(report)
+    );
+  }
+
   appendArchitectureCoordination(report) {
     return this.#append(
       'architecture-coordination',
@@ -6852,6 +7007,30 @@ export class EvidenceLedger {
     return objectFreeze(validations);
   }
 
+  restoreHarnessFactoryResearchPlanExecutions() {
+    if (!this.verify()) {
+      throw new Error(
+        'Evidence ledger cannot restore Harness Factory research plan executions from an invalid chain'
+      );
+    }
+    const executions = [];
+    arrayForEach(this.#records, (record) => {
+      if (record.kind !== 'harness-factory-research-plan-execution') {
+        return;
+      }
+      const execution = normalizeHarnessFactoryResearchPlanExecutionPayload(record.payload);
+      arrayPush(executions, objectFreeze({
+        ...execution,
+        archive: objectFreeze({
+          kind: record.kind,
+          sequence: record.sequence,
+          hash: record.hash
+        })
+      }));
+    });
+    return objectFreeze(executions);
+  }
+
   restoreMemoryAwareCoordination() {
     if (!this.verify()) {
       throw new Error(
@@ -6971,6 +7150,8 @@ export class EvidenceLedger {
             ? normalizeHarnessFactoryBenchmarkCampaignPayload(record.payload)
           : record.kind === 'harness-factory-benchmark-validation'
             ? normalizeHarnessFactoryBenchmarkValidationPayload(record.payload)
+          : record.kind === 'harness-factory-research-plan-execution'
+            ? normalizeHarnessFactoryResearchPlanExecutionPayload(record.payload)
           : record.kind === 'harness-factory-validation'
             ? normalizeHarnessFactoryValidationPayload(record.payload)
           : record.kind === 'memory-aware-ensemble'
