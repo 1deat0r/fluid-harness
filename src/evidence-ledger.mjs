@@ -434,6 +434,27 @@ const ARCHITECTURE_DISCOVERY_FACTORY_KEYS_WITH_HOLDOUT = objectFreeze([
   'predecessor',
   'status'
 ]);
+const ARCHITECTURE_DISCOVERY_FACTORY_KEYS_WITH_PROPOSAL_ARCHIVE = objectFreeze([
+  'benchmark',
+  'dataOnly',
+  'factoryId',
+  'generation',
+  'improvement',
+  'predecessor',
+  'proposalArchive',
+  'status'
+]);
+const ARCHITECTURE_DISCOVERY_FACTORY_KEYS_WITH_HOLDOUT_AND_PROPOSAL_ARCHIVE = objectFreeze([
+  'benchmark',
+  'dataOnly',
+  'factoryId',
+  'generation',
+  'holdout',
+  'improvement',
+  'predecessor',
+  'proposalArchive',
+  'status'
+]);
 const ARCHITECTURE_DISCOVERY_FACTORY_PREDECESSOR_KEYS = objectFreeze([
   'hash',
   'kind',
@@ -2142,9 +2163,21 @@ function normalizeArchitectureDiscoveryFactoryMetadata(value) {
     && hasExactKeys(normalized, ARCHITECTURE_DISCOVERY_FACTORY_KEYS);
   const holdoutShape = isPlainObject(normalized)
     && hasExactKeys(normalized, ARCHITECTURE_DISCOVERY_FACTORY_KEYS_WITH_HOLDOUT);
+  const proposalArchiveShape = isPlainObject(normalized)
+    && hasExactKeys(
+      normalized,
+      ARCHITECTURE_DISCOVERY_FACTORY_KEYS_WITH_PROPOSAL_ARCHIVE
+    );
+  const holdoutProposalArchiveShape = isPlainObject(normalized)
+    && hasExactKeys(
+      normalized,
+      ARCHITECTURE_DISCOVERY_FACTORY_KEYS_WITH_HOLDOUT_AND_PROPOSAL_ARCHIVE
+    );
   if (
     !legacyShape
     && !holdoutShape
+    && !proposalArchiveShape
+    && !holdoutProposalArchiveShape
   ) {
     throw new TypeError(
       'Evidence ledger architecture-discovery factory metadata has an invalid shape'
@@ -2203,8 +2236,36 @@ function normalizeArchitectureDiscoveryFactoryMetadata(value) {
     )
   });
   const normalizedHoldout = holdoutShape
+    || holdoutProposalArchiveShape
     ? normalizeArchitectureDiscoveryFactoryHoldout(normalized.holdout)
     : null;
+  let normalizedProposalArchive = null;
+  if (proposalArchiveShape || holdoutProposalArchiveShape) {
+    const proposalArchive = normalized.proposalArchive;
+    if (proposalArchive !== null) {
+      if (
+        !isPlainObject(proposalArchive)
+        || !hasExactKeys(proposalArchive, HARNESS_FACTORY_VALIDATION_BASELINE_KEYS)
+        || proposalArchive.kind !== 'harness-factory-architecture-proposals'
+      ) {
+        throw new TypeError(
+          'Evidence ledger architecture-discovery factory proposal archive is invalid'
+        );
+      }
+      normalizedProposalArchive = objectFreeze({
+        hash: requireNonEmptyString(
+          proposalArchive.hash,
+          'Evidence ledger architecture-discovery factory proposal archive hash'
+        ),
+        kind: proposalArchive.kind,
+        sequence: requireDiscoveryCount(
+          proposalArchive.sequence,
+          'Evidence ledger architecture-discovery factory proposal archive sequence',
+          1
+        )
+      });
+    }
+  }
   const predecessor = normalized.predecessor;
   let normalizedPredecessor = null;
   if (predecessor !== null) {
@@ -2310,12 +2371,46 @@ function normalizeArchitectureDiscoveryFactoryMetadata(value) {
     ),
     improvement: normalizedImprovement,
     predecessor: normalizedPredecessor,
+    proposalArchive: normalizedProposalArchive,
     status
   };
-  if (holdoutShape) {
+  if (holdoutShape || holdoutProposalArchiveShape) {
     result.holdout = normalizedHoldout;
   }
   return objectFreeze(result);
+}
+
+function validateArchitectureDiscoveryFactoryProposalArchive(
+  records,
+  factoryMetadata,
+  discoverySequence
+) {
+  const locator = factoryMetadata.proposalArchive;
+  if (locator === null) {
+    return;
+  }
+  const proposalRecord = arrayFind(
+    records,
+    (record) => record.kind === locator.kind
+      && record.sequence === locator.sequence
+      && record.hash === locator.hash
+  );
+  if (
+    proposalRecord === undefined
+    || proposalRecord.sequence >= discoverySequence
+  ) {
+    throw new Error(
+      'Evidence ledger architecture-discovery factory proposal archive is not an earlier record in the current chain'
+    );
+  }
+  const proposals = normalizeHarnessFactoryArchitectureProposalsPayload(
+    proposalRecord.payload
+  );
+  if (proposals.factoryId !== factoryMetadata.factoryId) {
+    throw new TypeError(
+      'Evidence ledger architecture-discovery factory proposal archive belongs to another factory'
+    );
+  }
 }
 
 function normalizeHarnessFactoryValidationPayload(payload) {
@@ -7487,10 +7582,15 @@ export class EvidenceLedger {
   }
 
   appendArchitectureDiscovery(report, factoryMetadata = null) {
-    return this.#append(
-      'architecture-discovery',
-      architectureDiscoveryPayload(report, factoryMetadata)
-    );
+    const payload = architectureDiscoveryPayload(report, factoryMetadata);
+    if (payload.factory !== undefined) {
+      validateArchitectureDiscoveryFactoryProposalArchive(
+        this.#records,
+        payload.factory,
+        this.#records.length + 1
+      );
+    }
+    return this.#append('architecture-discovery', payload);
   }
 
   appendHarnessFactoryBenchmarkCampaign(report) {
@@ -7707,7 +7807,15 @@ export class EvidenceLedger {
     const discoveries = [];
     arrayForEach(this.#records, (record) => {
       if (record.kind === 'architecture-discovery') {
-        arrayPush(discoveries, normalizeArchitectureDiscoveryPayload(record.payload));
+        const discovery = normalizeArchitectureDiscoveryPayload(record.payload);
+        if (discovery.factory !== null && discovery.factory !== undefined) {
+          validateArchitectureDiscoveryFactoryProposalArchive(
+            this.#records,
+            discovery.factory,
+            record.sequence
+          );
+        }
+        arrayPush(discoveries, discovery);
       }
     });
     return objectFreeze(discoveries);

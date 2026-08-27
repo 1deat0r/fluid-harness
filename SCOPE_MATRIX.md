@@ -57,6 +57,8 @@ The session-ledger boundary now archives the complete supervised discovery-plus-
 
 The proposal-only factory path can now build its own bounded structured-memory context from selected verified factory evidence sources before asking the process-isolated proposer for the next configuration. It rejects unsupported, empty, duplicate, accessor-bearing, no-match, over-capacity, or ambiguous queries; the resulting context remains data-only and historical-only.
 
+An explicitly archived proposal batch can now return to the factory through `factory.manufactureFromArchivedProposals(report, options)`. The bridge requires an exact current archive, reconstructs fresh proposal objects from verified data-only summaries, reruns candidate resolution, production/research/skeptic evaluation, independent replay, adoption, and generation archival, and preserves the source locator in the new generation. The archived source remains untested and cannot transfer runtime authority.
+
 ## End-state in plain language
 
 The intended destination is a reusable harness architect and research control tower in which increasingly capable agents can propose ways to think, build new bounded harness configurations, test those configurations against independent evidence, learn from surprises, archive the results, retire failed configurations, and adopt only reproducible improvements under operator-controlled limits.

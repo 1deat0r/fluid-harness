@@ -7,7 +7,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 270.908173 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 243.751091 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -17,7 +17,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=536 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=540 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -42,7 +42,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.122},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.357},{"
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":4.966},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.291},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2603,3 +2603,23 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
   CHECK: node scripts/check-harness-factory-architecture-proposals-archive-option-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_OPTION_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_OPTION_BOUNDARY_OK defaultPreserved=true invalidOptionRejected=true accessorRejected=true archived=true ledgerEntries=1 dataOnly=true authorityTransferred=false
+
+- [x] G521: the architecture discovery runner can evaluate a trusted archived proposal report through fresh production, research, skeptic, replay, and adoption authorities
+  CHECK: node scripts/check-harness-factory-archived-proposal-discovery.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHIVED_PROPOSAL_DISCOVERY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHIVED_PROPOSAL_DISCOVERY_OK proposals=1 candidates=1 primaryComplete=true reproductionComplete=true reproducible=true adopted=true
+
+- [x] G522: the Harness Factory can manufacture and archive a fresh generation from an explicitly archived proposal batch while retaining proposal provenance
+  CHECK: node scripts/check-harness-factory-archived-proposal-manufacture.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHIVED_PROPOSAL_MANUFACTURE_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHIVED_PROPOSAL_MANUFACTURE_OK sourceArchive=1 generation=1 generationArchive=2 proposalArchive=1 status=ADOPTED ledgerEntries=2 verify=true
+
+- [x] G523: archived-proposal manufacture rejects forged, pending, foreign, stale, tampered, unknown, and accessor-bearing inputs without ledger mutation
+  CHECK: node scripts/check-harness-factory-archived-proposal-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHIVED_PROPOSAL_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHIVED_PROPOSAL_BOUNDARY_OK forged=true pending=true foreign=true stale=true tampered=true unknown=true accessor=true goalMismatch=true unknownOption=true ledgerEntries=1 verify=true
+
+- [x] G524: archived-proposal manufacture keeps the source proposal batch untested and data-only while only the fresh factory lifecycle can earn adoption and proof
+  CHECK: node scripts/check-harness-factory-archived-proposal-authority-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHIVED_PROPOSAL_AUTHORITY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHIVED_PROPOSAL_AUTHORITY_BOUNDARY_OK sourceEvaluated=false sourceAdopted=false sourceDataOnly=true sourceAuthorityTransferred=false freshAdopted=true freshDeployed=false ledgerEntries=2 verify=true

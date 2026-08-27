@@ -91,6 +91,80 @@ function budgetOrDefault(budget, maxCases, field) {
   return normalized;
 }
 
+function discoverFromTrustedProposalReport(
+  runner,
+  {
+    proposalReport,
+    plannerCandidates,
+    cases,
+    productionBudget,
+    researchBudget,
+    skepticBudget
+  } = {}
+) {
+  if (!isTrustedAgentArchitectureDiscoveryRunner(runner)) {
+    throw new TypeError('Agent architecture discovery requires an exact trusted runner');
+  }
+  if (!isTrustedAgentArchitectureProposalReport(proposalReport)) {
+    throw new TypeError(
+      'Agent architecture discovery from proposal requires a trusted proposal report'
+    );
+  }
+  const normalizedPlannerCandidates = requireTrustedPlannerCandidates(plannerCandidates);
+  const normalizedCases = requireTrustedCases(cases);
+  const budgets = {
+    production: budgetOrDefault(
+      productionBudget,
+      normalizedCases.length,
+      'Architecture discovery production budget'
+    ),
+    research: budgetOrDefault(
+      researchBudget,
+      normalizedCases.length,
+      'Architecture discovery research budget'
+    ),
+    skeptic: budgetOrDefault(
+      skepticBudget,
+      normalizedCases.length,
+      'Architecture discovery skeptic budget'
+    )
+  };
+  const candidates = runner.proposalRunner.resolve({
+    report: proposalReport,
+    plannerCandidates: normalizedPlannerCandidates
+  });
+  const primary = new AgentArchitectureSearchRunner().evaluate({
+    candidates,
+    cases: normalizedCases,
+    productionBudget: budgets.production,
+    researchBudget: budgets.research,
+    skepticBudget: budgets.skeptic
+  });
+  const reproduction = new AgentArchitectureSearchRunner().evaluate({
+    candidates,
+    cases: normalizedCases,
+    productionBudget: budgets.production,
+    researchBudget: budgets.research,
+    skepticBudget: budgets.skeptic
+  });
+  const reproducibility = new AgentArchitectureReproducibilityAuthority().reproduce({
+    searchReport: primary,
+    reproductionReport: reproduction,
+    candidateId: primary.winner.architectureId
+  });
+  const adoption = runner.adoptionAuthority.adopt(reproducibility);
+  return new AgentArchitectureDiscoveryReport({
+    runner,
+    proposalReport,
+    candidates,
+    primary,
+    reproduction,
+    reproducibility,
+    adoption,
+    token: DISCOVERY_TOKEN
+  });
+}
+
 export class AgentArchitectureDiscoveryReport {
   constructor({
     runner,
@@ -207,39 +281,31 @@ export class AgentArchitectureDiscoveryRunner {
       plannerCandidateIds: arrayMap(normalizedPlannerCandidates, ({ id }) => id),
       researchContext
     });
-    const candidates = this.proposalRunner.resolve({
-      report: proposalReport,
-      plannerCandidates: normalizedPlannerCandidates
-    });
-    const primary = new AgentArchitectureSearchRunner().evaluate({
-      candidates,
-      cases: normalizedCases,
-      productionBudget: budgets.production,
-      researchBudget: budgets.research,
-      skepticBudget: budgets.skeptic
-    });
-    const reproduction = new AgentArchitectureSearchRunner().evaluate({
-      candidates,
-      cases: normalizedCases,
-      productionBudget: budgets.production,
-      researchBudget: budgets.research,
-      skepticBudget: budgets.skeptic
-    });
-    const reproducibility = new AgentArchitectureReproducibilityAuthority().reproduce({
-      searchReport: primary,
-      reproductionReport: reproduction,
-      candidateId: primary.winner.architectureId
-    });
-    const adoption = this.adoptionAuthority.adopt(reproducibility);
-    return new AgentArchitectureDiscoveryReport({
-      runner: this,
+    return discoverFromTrustedProposalReport(this, {
       proposalReport,
-      candidates,
-      primary,
-      reproduction,
-      reproducibility,
-      adoption,
-      token: DISCOVERY_TOKEN
+      plannerCandidates: normalizedPlannerCandidates,
+      cases: normalizedCases,
+      productionBudget: budgets.production,
+      researchBudget: budgets.research,
+      skepticBudget: budgets.skeptic
+    });
+  }
+
+  discoverFromProposalReport({
+    proposalReport,
+    plannerCandidates,
+    cases,
+    productionBudget,
+    researchBudget,
+    skepticBudget
+  } = {}) {
+    return discoverFromTrustedProposalReport(this, {
+      proposalReport,
+      plannerCandidates,
+      cases,
+      productionBudget,
+      researchBudget,
+      skepticBudget
     });
   }
 }

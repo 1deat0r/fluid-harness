@@ -13,6 +13,10 @@ import {
   isTrustedAgentArchitectureCandidate
 } from './agent-architecture.mjs';
 import {
+  AgentArchitectureProposal,
+  AgentArchitectureProposalReport
+} from './agent-architecture-proposal.mjs';
+import {
   isTrustedAgentPlannerCandidate,
   isTrustedAgentPlannerCase
 } from './agent-search.mjs';
@@ -188,6 +192,22 @@ const MANUFACTURE_OPTIONS_KEYS = objectFreeze([
   'holdoutResearchBudget',
   'holdoutSkepticBudget',
   'archive',
+  'agentGoal',
+  'agentContext',
+  'agentReproduction',
+  'toolRegistry'
+]);
+const ARCHIVED_PROPOSAL_MANUFACTURE_OPTIONS_KEYS = objectFreeze([
+  'goal',
+  'plannerCandidates',
+  'cases',
+  'productionBudget',
+  'researchBudget',
+  'skepticBudget',
+  'holdoutCases',
+  'holdoutProductionBudget',
+  'holdoutResearchBudget',
+  'holdoutSkepticBudget',
   'agentGoal',
   'agentContext',
   'agentReproduction',
@@ -700,6 +720,84 @@ function verifiedLedgerSnapshot(ledger) {
   return EvidenceLedger.fromSerialized(ledger.serialize());
 }
 
+function sameFactoryArchitectureProposalBatchAsReport(batch, report) {
+  if (
+    batch.factoryId !== report.factoryId
+    || batch.goal !== report.goal
+    || batch.proposalSource !== report.source
+    || batch.proposalCount !== report.proposalCount
+    || batch.novelProposalCount !== report.novelProposalCount
+    || batch.repeatedProposalCount !== report.repeatedProposalCount
+    || jsonStringify(batch.researchContext) !== jsonStringify(report.researchContext)
+    || batch.proposals.length !== report.proposals.length
+  ) {
+    return false;
+  }
+  return arrayEvery(batch.proposals, (batchProposal, index) => {
+    const reportProposal = report.proposals[index];
+    return reportProposal !== undefined
+      && batchProposal.id === reportProposal.id
+      && batchProposal.plannerCandidateId === reportProposal.plannerCandidateId
+      && batchProposal.architectureFingerprint === reportProposal.architectureFingerprint
+      && batchProposal.novel === reportProposal.novel
+      && batchProposal.repeated === reportProposal.repeated
+      && batchProposal.status === reportProposal.status
+      && batchProposal.historicalMatchCount === reportProposal.historicalMatchCount
+      && batchProposal.batchDuplicate === reportProposal.batchDuplicate
+      && jsonStringify(batchProposal.policy) === jsonStringify(reportProposal.policy)
+      && jsonStringify(batchProposal.components) === jsonStringify(reportProposal.components);
+  });
+}
+
+function agentArchitectureProposalReportFromArchivedFactoryReport(
+  factory,
+  report,
+  ledger
+) {
+  if (
+    !isTrustedHarnessFactoryArchitectureProposalReport(report)
+    || weakMapGet(TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_FACTORIES, report)
+      !== factory
+    || report.archived !== true
+    || report.archive === null
+  ) {
+    throw new TypeError(
+      'Harness Factory archived-proposal manufacture requires an exact archived report from this factory'
+    );
+  }
+  const batch = arrayFind(
+    ledger.restoreHarnessFactoryArchitectureProposals(),
+    (candidate) => sameArchiveLocator(candidate.archive, report.archive)
+  );
+  if (
+    batch === undefined
+    || batch.factoryId !== factory.factoryId
+    || !sameFactoryArchitectureProposalBatchAsReport(batch, report)
+  ) {
+    throw new Error(
+      'Harness Factory archived-proposal manufacture requires a matching current archive'
+    );
+  }
+  const proposalReport = new AgentArchitectureProposalReport({
+    goal: report.goal,
+    proposals: arrayMap(
+      report.proposals,
+      (proposal) => new AgentArchitectureProposal({
+        id: proposal.id,
+        plannerCandidateId: proposal.plannerCandidateId,
+        policy: proposal.policy,
+        components: proposal.components
+      })
+    ),
+    source: report.source,
+    researchContext: report.researchContext
+  });
+  return objectFreeze({
+    archive: archiveLocator(batch.archive),
+    report: proposalReport
+  });
+}
+
 function summarizeAgentRun(runReport) {
   if (!isTrustedAgentRunReport(runReport)) {
     throw new TypeError('Harness Factory agent run must be trusted');
@@ -1182,6 +1280,7 @@ function factoryHistorySummary({ discovery, record }) {
     holdoutStatus: factoryHoldoutStatus(metadata),
     improvement: metadata.improvement,
     status: metadata.status,
+    proposalArchive: metadata.proposalArchive ?? null,
     winnerId: discovery.winnerId
   });
 }
@@ -4843,7 +4942,8 @@ function factoryGenerationMetadata({
   holdoutCases,
   discovery,
   improvement,
-  holdout
+  holdout,
+  proposalArchive = null
 }) {
   const benchmark = factoryBenchmarkIdentity({ cases, discovery, holdoutCases });
   const priorGenerations = factoryHistoryFromLedger(factory.ledger, factory.factoryId);
@@ -4866,6 +4966,9 @@ function factoryGenerationMetadata({
     generation: priorGenerations.length + 1,
     improvement: improvementMetadata,
     predecessor: predecessor === null ? null : archiveLocator(predecessor),
+    proposalArchive: proposalArchive === null
+      ? null
+      : archiveLocator(proposalArchive),
     status: discovery.adopted
       && (holdout === null || holdout.passed === true)
       ? HARNESS_FACTORY_STATUSES.ADOPTED
@@ -4878,10 +4981,22 @@ function factoryGenerationMetadata({
   return objectFreeze(metadata);
 }
 
-function manufactureFactory(factory, options, improvementBaseline = null) {
+function manufactureFactory(
+  factory,
+  options,
+  improvementBaseline = null,
+  proposalArchive = null,
+  discoveryOverride = null
+) {
   requireDataObject(options, 'Harness Factory manufacture options', MANUFACTURE_OPTIONS_KEYS);
   if (!isTrustedHarnessFactory(factory)) {
     throw new TypeError('Harness Factory requires an exact trusted factory');
+  }
+  if (
+    discoveryOverride !== null
+    && !isTrustedAgentArchitectureDiscoveryReport(discoveryOverride)
+  ) {
+    throw new TypeError('Harness Factory discovery override must be trusted evidence');
   }
   const {
     goal,
@@ -4903,6 +5018,19 @@ function manufactureFactory(factory, options, improvementBaseline = null) {
   } = options;
   if (typeof archive !== 'boolean') {
     throw new TypeError('Harness Factory archive must be boolean');
+  }
+  if (
+    proposalArchive !== null
+    && (
+      !isPlainObject(proposalArchive)
+      || proposalArchive.kind !== 'harness-factory-architecture-proposals'
+      || !isSafeInteger(proposalArchive.sequence)
+      || proposalArchive.sequence <= 0
+      || typeof proposalArchive.hash !== 'string'
+      || stringTrim(proposalArchive.hash) === ''
+    )
+  ) {
+    throw new TypeError('Harness Factory proposal archive provenance is invalid');
   }
   if (
     researchContext !== null
@@ -4946,17 +5074,27 @@ function manufactureFactory(factory, options, improvementBaseline = null) {
   ) {
     throw new TypeError('Harness Factory toolRegistry requires a trusted ToolRegistry');
   }
-  const discovery = factory.discoveryRunner.discover({
-    goal,
-    plannerCandidates,
-    cases,
-    productionBudget,
-    researchBudget,
-    skepticBudget,
-    researchContext
-  });
+  const discovery = discoveryOverride === null
+    ? factory.discoveryRunner.discover({
+      goal,
+      plannerCandidates,
+      cases,
+      productionBudget,
+      researchBudget,
+      skepticBudget,
+      researchContext
+    })
+    : discoveryOverride;
   if (!isTrustedAgentArchitectureDiscoveryReport(discovery)) {
     throw new TypeError('Harness Factory discovery returned untrusted evidence');
+  }
+  if (
+    discoveryOverride !== null
+    && discovery.goal !== requireNonEmptyString(goal, 'Harness Factory goal')
+  ) {
+    throw new TypeError(
+      'Harness Factory discovery override goal must match manufacture goal'
+    );
   }
   const currentBenchmarkIdentity = factoryBenchmarkIdentity({
     cases,
@@ -5020,9 +5158,10 @@ function manufactureFactory(factory, options, improvementBaseline = null) {
           cases,
           holdoutCases: normalizedHoldoutCases,
           discovery,
-          factory,
-          improvement,
-          holdout
+        factory,
+        improvement,
+          holdout,
+          proposalArchive
         })
       );
     }
@@ -5039,7 +5178,8 @@ function manufactureFactory(factory, options, improvementBaseline = null) {
     discovery,
     factory,
     improvement,
-    holdout
+    holdout,
+    proposalArchive
   });
   const archiveRecord = archive
     ? factory.ledger.appendArchitectureDiscovery(discovery, factoryMetadata)
@@ -8783,6 +8923,7 @@ export class HarnessFactoryReport {
     this.benchmarkIdentity = factoryMetadata.benchmark;
     this.generation = factoryMetadata.generation;
     this.predecessor = factoryMetadata.predecessor;
+    this.proposalArchive = factoryMetadata.proposalArchive ?? null;
     this.complete = discovery.complete;
     this.primaryComplete = discovery.primary.complete;
     this.reproductionComplete = discovery.reproduction.complete;
@@ -9333,6 +9474,72 @@ export class HarnessFactory {
 
   manufacture(options = {}) {
     return manufactureFactory(this, options);
+  }
+
+  manufactureFromArchivedProposals(proposalReport, options = {}) {
+    requireDataObject(
+      options,
+      'Harness Factory archived-proposal manufacture options',
+      ARCHIVED_PROPOSAL_MANUFACTURE_OPTIONS_KEYS
+    );
+    if (!isTrustedHarnessFactory(this)) {
+      throw new TypeError('Harness Factory requires an exact trusted factory');
+    }
+    const historicalLedger = verifiedLedgerSnapshot(this.ledger);
+    const archived = agentArchitectureProposalReportFromArchivedFactoryReport(
+      this,
+      proposalReport,
+      historicalLedger
+    );
+    const normalizedGoal = options.goal === undefined
+      ? archived.report.goal
+      : requireNonEmptyString(options.goal, 'Harness Factory archived-proposal goal');
+    if (normalizedGoal !== archived.report.goal) {
+      throw new Error(
+        'Harness Factory archived-proposal manufacture goal must match the archived proposal goal'
+      );
+    }
+    const {
+      plannerCandidates,
+      cases,
+      productionBudget,
+      researchBudget,
+      skepticBudget,
+      holdoutCases = null,
+      holdoutProductionBudget = null,
+      holdoutResearchBudget = null,
+      holdoutSkepticBudget = null,
+      agentGoal = null,
+      agentContext = null,
+      agentReproduction = 'HarnessFactory.manufactureFromArchivedProposals',
+      toolRegistry = null
+    } = options;
+    const discovery = this.discoveryRunner.discoverFromProposalReport({
+      proposalReport: archived.report,
+      plannerCandidates,
+      cases,
+      productionBudget,
+      researchBudget,
+      skepticBudget
+    });
+    return manufactureFactory(this, {
+      goal: normalizedGoal,
+      plannerCandidates,
+      cases,
+      productionBudget,
+      researchBudget,
+      skepticBudget,
+      researchContext: archived.report.researchContext,
+      holdoutCases,
+      holdoutProductionBudget,
+      holdoutResearchBudget,
+      holdoutSkepticBudget,
+      archive: true,
+      agentGoal,
+      agentContext,
+      agentReproduction,
+      toolRegistry
+    }, null, archived.archive, discovery);
   }
 
   proposeArchitectures(options = {}) {
