@@ -14,6 +14,8 @@ The factory can also receive a small disjoint `holdoutCases` suite. An adopted b
 
 The `HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION` memory source records only receipt target, bridge, result status, resolution state, archive-count signal, and ledger provenance. It can inform a later process-isolated proposer or improvement query, but it cannot restore a plan, candidate, runner, proof, or authority.
 
+Receipt persistence requires a non-empty set of result archive sequences that resolve to prior verified ledger records of the result type's allowed archive kinds; missing, future, and wrong-kind references fail closed even if their enclosing record hash is valid.
+
 `factory.benchmark()` evaluates a fresh trusted architecture at finite caller-supplied budget levels, independently replays each level, rejects architecture-definition drift, and returns bounded summary points plus a compute/fitness Pareto frontier. It is evaluation evidence only: it does not adopt, deploy, archive, or restore the candidate.
 
 `factory.benchmarkCampaign()` extends that bounded measurement to multiple fresh trusted architectures on one shared finite budget ladder. It uses fresh multi-candidate search/reproduction runners per level, rejects shared planner/policy definitions and cross-level architecture drift, and returns only candidate/level summaries plus a cross-candidate Pareto frontier; it does not adopt or deploy any candidate. `factory.archiveBenchmarkCampaign()` can persist that result as a separate hash-chained data-only record, and restore returns plain summaries without candidates, runners, reports, or authority.

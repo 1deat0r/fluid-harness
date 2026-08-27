@@ -4,7 +4,7 @@
 ## Public status
 
 - Package version: 0.1.0
-- Acceptance ledger: 486/486 gates marked met in [GATES.md](GATES.md).
+- Acceptance ledger: 488/488 gates marked met in [GATES.md](GATES.md).
 - Scope: bounded architecture discovery, evaluation, archival, research, and improvement; no automatic deployment or artificial-superintelligence claim.
 - Generated detail: [docs/STATUS.md](docs/STATUS.md).
 
@@ -372,6 +372,8 @@ node scripts/check-harness-factory-campaign-memory-improvement.mjs
 node scripts/check-harness-factory-campaign-memory-improvement-boundary.mjs
 node scripts/check-harness-factory-research-plan-memory.mjs
 node scripts/check-harness-factory-research-plan-memory-boundary.mjs
+node scripts/check-harness-factory-research-plan-provenance.mjs
+node scripts/check-harness-factory-research-plan-provenance-boundary.mjs
 node scripts/check-memory-ledger-adversarial-lineage-planner.mjs
 node scripts/check-memory-ledger-adversarial-lineage-planner-boundary.mjs
 node scripts/check-memory-ledger-session-planner.mjs
@@ -606,6 +608,8 @@ The `HarnessFactory` façade is the first lifecycle-level assembly line over tho
 `factory.executeResearchPlanReceipt(planItem, options)` is the bounded dispatcher for executable plan items. It rechecks that the exact plan is current, routes recommendation, holdout, benchmark-validation, frontier-completion, or frontier-stability work through the corresponding existing bridge with the caller's fresh inputs, and appends a standardized data-only execution receipt to the hash chain. The compatibility method `factory.executeResearchPlan(planItem, options)` returns the receipt's trusted result directly, while `factory.researchPlanExecutions()` exposes a capped restored history of the receipt summaries. Operator-only experiment plans fail closed with an explicit handoff requirement; stale, foreign, forged, mutable, or accessor-bearing plans cannot mutate the ledger. The dispatcher still never restores a candidate, adopts an architecture by itself, deploys anything, or transfers authority.
 
 Execution receipts can be imported into structured memory under `MEMORY_SOURCES.HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION`. That memory contains only the target, bridge, result kind/status, resolution state, bounded archive-count signal, and receipt provenance; it is `OBSERVED` historical context for later proposer/improvement cycles, not a trusted plan, runtime artifact, proof, or authority.
+
+Receipt persistence also checks provenance semantically: every receipt must reference at least one earlier ledger record, and each referenced record must be an archive kind allowed for that result type. Missing, future, or wrong-kind references are rejected even when a tampered payload has been resealed with a valid chain hash.
 
 `factory.benchmark({ candidate, cases, levels })` is the factory’s bounded architecture benchmarker. It evaluates a fresh candidate at finite budget levels, independently replays each level with fresh search runners, rejects definition drift between levels, and returns summary metrics plus a compute/fitness Pareto frontier. The candidate, search reports, runners, and action evidence remain private; the benchmark does not adopt, deploy, or archive the candidate.
 

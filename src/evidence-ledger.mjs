@@ -2388,6 +2388,60 @@ function normalizeHarnessFactoryResearchPlanExecutionPayload(payload) {
   });
 }
 
+function harnessFactoryResearchPlanExecutionArchiveKinds(resultType) {
+  if (resultType === 'HARNESS_FACTORY_REPORT') {
+    return [
+      'agent-run',
+      'architecture-discovery'
+    ];
+  }
+  if (resultType === 'HARNESS_FACTORY_VALIDATION') {
+    return ['harness-factory-validation'];
+  }
+  if (resultType === 'HARNESS_FACTORY_BENCHMARK_VALIDATION') {
+    return ['harness-factory-benchmark-validation'];
+  }
+  if (
+    resultType === 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_RESEARCH'
+    || resultType === 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH'
+  ) {
+    return [
+      'harness-factory-benchmark-campaign',
+      'harness-factory-benchmark-validation'
+    ];
+  }
+  throw new TypeError(
+    'Evidence ledger Harness Factory research plan execution resultType is invalid'
+  );
+}
+
+function validateHarnessFactoryResearchPlanExecutionArchives(records, payload) {
+  const expectedKinds = harnessFactoryResearchPlanExecutionArchiveKinds(
+    payload.resultType
+  );
+  if (payload.resultArchiveSequences.length === 0) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory research plan execution must reference an archive'
+    );
+  }
+  arrayForEach(payload.resultArchiveSequences, (sequence) => {
+    const archive = arrayFind(
+      records,
+      (record) => record.sequence === sequence
+    );
+    if (archive === undefined) {
+      throw new Error(
+        'Evidence ledger Harness Factory research plan execution archive is not in the current chain'
+      );
+    }
+    if (!arrayIncludes(expectedKinds, archive.kind)) {
+      throw new TypeError(
+        'Evidence ledger Harness Factory research plan execution archive kind does not match the result'
+      );
+    }
+  });
+}
+
 function normalizeHarnessFactoryBenchmarkCampaignPoint(value, index, candidateIds) {
   const normalized = snapshotData(value);
   if (
@@ -6743,10 +6797,9 @@ export class EvidenceLedger {
   }
 
   appendHarnessFactoryResearchPlanExecution(report) {
-    return this.#append(
-      'harness-factory-research-plan-execution',
-      harnessFactoryResearchPlanExecutionPayload(report)
-    );
+    const payload = harnessFactoryResearchPlanExecutionPayload(report);
+    validateHarnessFactoryResearchPlanExecutionArchives(this.#records, payload);
+    return this.#append('harness-factory-research-plan-execution', payload);
   }
 
   appendArchitectureCoordination(report) {
@@ -7166,6 +7219,9 @@ export class EvidenceLedger {
     }
     if (record.kind === 'harness-factory-benchmark-validation') {
       validateHarnessFactoryBenchmarkValidationCampaign(this.#records, payload);
+    }
+    if (record.kind === 'harness-factory-research-plan-execution') {
+      validateHarnessFactoryResearchPlanExecutionArchives(this.#records, payload);
     }
     const expectedHash = hashFor({
       schemaVersion: record.schemaVersion,
