@@ -102,6 +102,11 @@ assert.deepEqual(
   [MEMORY_SOURCES.ARCHITECTURE_DISCOVERY, MEMORY_SOURCES.HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION]
 );
 assert.equal(improved.researchContext.resultCount, 2);
+assert.deepEqual(improved.researchContext.sourceCounts, {
+  ARCHITECTURE_DISCOVERY: 1,
+  HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION: 1
+});
+assert.equal(Object.isFrozen(improved.researchContext.sourceCounts), true);
 assert.equal(Object.hasOwn(improved.researchContext, 'results'), false);
 assert.equal(improved.researchContext.dataOnly, true);
 assert.equal(improved.researchContext.historicalOnly, true);

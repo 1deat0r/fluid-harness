@@ -104,19 +104,37 @@ function researchSummary(researchContext) {
       'Agent architecture proposal research context summary must be a plain object'
     );
   }
+  const normalizedResearchContext = snapshotProcessData(researchContext);
   if (
-    researchContext.source !== 'STRUCTURED_MEMORY'
-    || typeof researchContext.resultCount !== 'number'
-    || researchContext.dataOnly !== true
-    || researchContext.historicalOnly !== true
-    || researchContext.authorityTransferred !== false
+    normalizedResearchContext.source !== 'STRUCTURED_MEMORY'
+    || !isSafeInteger(normalizedResearchContext.resultCount)
+    || normalizedResearchContext.resultCount < 0
+    || !isPlainObject(normalizedResearchContext.sourceCounts)
+    || normalizedResearchContext.dataOnly !== true
+    || normalizedResearchContext.historicalOnly !== true
+    || normalizedResearchContext.authorityTransferred !== false
   ) {
     throw new TypeError('Agent architecture proposal research context summary is invalid');
   }
+  const sourceCounts = normalizedResearchContext.sourceCounts;
+  let sourceCountTotal = 0;
+  arrayForEach(objectKeys(sourceCounts), (source) => {
+    const count = sourceCounts[source];
+    if (!isSafeInteger(count) || count < 0) {
+      throw new TypeError(
+        'Agent architecture proposal research context source counts are invalid'
+      );
+    }
+    sourceCountTotal += count;
+  });
+  if (sourceCountTotal !== normalizedResearchContext.resultCount) {
+    throw new TypeError('Agent architecture proposal research context source counts are invalid');
+  }
   return objectFreeze({
-    source: researchContext.source,
-    query: researchContext.query,
-    resultCount: researchContext.resultCount,
+    source: normalizedResearchContext.source,
+    query: normalizedResearchContext.query,
+    sourceCounts,
+    resultCount: normalizedResearchContext.resultCount,
     dataOnly: true,
     historicalOnly: true,
     authorityTransferred: false

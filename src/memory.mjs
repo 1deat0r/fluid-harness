@@ -256,6 +256,40 @@ function normalizeSources(value, field = 'Memory query sources') {
   return objectFreeze(normalized);
 }
 
+function sourceCountsForQuery({ source, sources }, results) {
+  const counts = [];
+  const addSource = (candidate) => {
+    if (
+      candidate !== null
+      && arrayFind(counts, ({ source: existing }) => existing === candidate) === undefined
+    ) {
+      arrayPush(counts, { source: candidate, count: 0 });
+    }
+  };
+  if (sources !== null) {
+    arrayForEach(sources, addSource);
+  } else {
+    addSource(source);
+  }
+  arrayForEach(results, ({ source: resultSource }) => {
+    const existing = arrayFind(
+      counts,
+      ({ source: candidate }) => candidate === resultSource
+    );
+    if (existing === undefined) {
+      arrayPush(counts, { source: resultSource, count: 1 });
+    } else {
+      existing.count += 1;
+    }
+  });
+  arraySort(counts, (left, right) => stringLocaleCompare(left.source, right.source));
+  const summary = {};
+  arrayForEach(counts, ({ source: resultSource, count }) => {
+    summary[resultSource] = count;
+  });
+  return objectFreeze(summary);
+}
+
 function normalizeMemoryEntry(entry, index) {
   if (isTrustedStructuredMemoryEntry(entry)) {
     return entry;
@@ -1812,6 +1846,7 @@ export class BoundedStructuredMemory {
       dataOnly: true,
       historicalOnly: true
     }));
+    const sourceCounts = sourceCountsForQuery({ source, sources }, results);
     const retrieval = objectFreeze({
       query: objectFreeze({
         keywords,
@@ -1826,6 +1861,7 @@ export class BoundedStructuredMemory {
         limit
       }),
       results: objectFreeze(results),
+      sourceCounts,
       totalMatches: ranked.length,
       returnedCount: results.length,
       truncated: ranked.length > limit,
@@ -1862,6 +1898,7 @@ export class StructuredMemoryContext {
     this.source = STRUCTURED_MEMORY_CONTEXT_SOURCE;
     this.query = retrieval.query;
     this.results = retrieval.results;
+    this.sourceCounts = retrieval.sourceCounts;
     this.resultCount = retrieval.returnedCount;
     this.dataOnly = true;
     this.historicalOnly = true;
@@ -1878,6 +1915,7 @@ export class StructuredMemoryContext {
       source: this.source,
       query: this.query,
       results: this.results,
+      sourceCounts: this.sourceCounts,
       resultCount: this.resultCount,
       dataOnly: true,
       historicalOnly: true,

@@ -126,6 +126,8 @@
     "structured-memory-boundary": "node scripts/check-structured-memory-boundary.mjs",
     "structured-memory-multi-source": "node scripts/check-structured-memory-multi-source.mjs",
     "structured-memory-multi-source-boundary": "node scripts/check-structured-memory-multi-source-boundary.mjs",
+    "structured-memory-source-counts": "node scripts/check-structured-memory-source-counts.mjs",
+    "structured-memory-source-counts-boundary": "node scripts/check-structured-memory-source-counts-boundary.mjs",
     "memory-planner-context": "node scripts/check-memory-planner-context.mjs",
     "memory-planner-context-boundary": "node scripts/check-memory-planner-context-boundary.mjs",
     "structured-memory-ledger": "node scripts/check-structured-memory-ledger.mjs",
