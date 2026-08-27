@@ -7,7 +7,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 819.552172 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 250.838811 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -17,7 +17,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=510 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=515 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -42,7 +42,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.351},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.379},{"
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.437},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.368},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2473,3 +2473,28 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
   CHECK: node scripts/check-structured-memory-source-counts-boundary.mjs
   EXPECT: FLUID_STRUCTURED_MEMORY_SOURCE_COUNTS_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_STRUCTURED_MEMORY_SOURCE_COUNTS_BOUNDARY_OK frozen=true zeroCounts=true invalidQueryRejected=true accessorRejected=true summaryAccessorRejected=true negativeCountRejected=true unchanged=true authorityTransferred=false
+
+- [x] G495: a factory improvement that fails its strict-gain, non-regression, or benchmark-identity guard archives a separate frozen rejection summary after retiring evaluated candidates without adding a generation
+  CHECK: node scripts/check-harness-factory-improvement-rejection.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_OK baseline=ADOPTED rejections=1 generations=1 strict=false replay=true dataOnly=true authorityTransferred=false
+
+- [x] G496: rejected improvement summaries round-trip through the hash chain and a factory exposes capped rejection history without restoring candidates, runners, reports, or authority
+  CHECK: node scripts/check-harness-factory-improvement-rejection-history.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_HISTORY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_HISTORY_OK considered=33 returned=32 max=32 truncated=true generations=1 roundTrip=33
+
+- [x] G497: improvement rejection archives reject forged, tampered, foreign, accessor-bearing, and runtime-artifact paths while preserving the verified ledger boundary
+  CHECK: node scripts/check-harness-factory-improvement-rejection-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_BOUNDARY_OK forgedRejected=true accessorRejected=true artifactRejected=true foreignRejected=true proofRejected=true ledgerPreserved=true authoritySuppressed=true
+
+- [x] G498: rejected improvement archives become a source-filtered observed-only memory signal and can be combined with factory discovery history for a fresh proposer
+  CHECK: node scripts/check-harness-factory-improvement-rejection-memory.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_MEMORY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_MEMORY_OK rejectionMatches=1 combinedMatches=2 sources=ARCHITECTURE_DISCOVERY,HARNESS_FACTORY_IMPROVEMENT_REJECTION freshProposer=true historicalOnly=true authorityTransferred=false
+
+- [x] G499: improvement-rejection memory rejects capacity, source, accessor, tamper, and artifact leakage paths without changing the ledger or transferring authority
+  CHECK: node scripts/check-harness-factory-improvement-rejection-memory-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_MEMORY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_MEMORY_BOUNDARY_OK invalidSourceRejected=true accessorRejected=true duplicateSourceRejected=true capacityRejected=true artifactSuppressed=true tamperedRejected=true ledgerPreserved=true historical

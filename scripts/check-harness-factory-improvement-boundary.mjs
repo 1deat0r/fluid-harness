@@ -106,7 +106,11 @@ assert.throws(
   })),
   /did not strictly improve measured fitness/
 );
-assert.equal(ledger.length, 1);
+assert.equal(ledger.length, 2);
+assert.deepEqual(
+  ledger.records.map((record) => record.kind),
+  ['architecture-discovery', 'harness-factory-improvement-rejection']
+);
 
 const regressionFixture = buildHarnessFactoryFixture({
   prefix: 'harness-factory-improvement-regression',
@@ -151,7 +155,11 @@ assert.throws(
   }),
   /regressed measured fitness/
 );
-assert.equal(regressionFixture.ledger.length, 1);
+assert.equal(regressionFixture.ledger.length, 2);
+assert.equal(
+  regressionFixture.factory.improvementRejections().returnedRejectionCount,
+  1
+);
 
 const driftFixture = buildHarnessFactoryFixture({
   prefix: 'harness-factory-improvement-drift',
@@ -192,7 +200,11 @@ assert.throws(
   }),
   /benchmark contract changed/
 );
-assert.equal(driftFixture.ledger.length, 1);
+assert.equal(driftFixture.ledger.length, 2);
+assert.equal(
+  driftFixture.factory.improvementRejections().returnedRejectionCount,
+  1
+);
 
 Object.defineProperty(ledger, 'serialize', {
   configurable: true,

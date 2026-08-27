@@ -53,6 +53,7 @@ export const MEMORY_SOURCES = objectFreeze({
   HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION: 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION',
   HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY: 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY',
   HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION: 'HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION',
+  HARNESS_FACTORY_IMPROVEMENT_REJECTION: 'HARNESS_FACTORY_IMPROVEMENT_REJECTION',
   COORDINATION: 'COORDINATION',
   DISTRIBUTION_SHIFT: 'DISTRIBUTION_SHIFT',
   ENSEMBLE: 'ENSEMBLE',
@@ -971,6 +972,59 @@ function harnessFactoryResearchPlanExecutionMemoryEntry(
   });
 }
 
+function harnessFactoryImprovementRejectionMemoryEntry(
+  rejection,
+  prefix,
+  index,
+  provenance = null
+) {
+  const keywords = [
+    'harness-factory-improvement-rejection',
+    'improvement-rejected'
+  ];
+  const addKeyword = (keyword) => {
+    if (
+      typeof keyword === 'string'
+      && keyword.length <= MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH
+      && keywords.length < MAX_STRUCTURED_MEMORY_KEYWORDS
+      && !arrayIncludes(keywords, keyword)
+    ) {
+      arrayPush(keywords, keyword);
+    }
+  };
+  if (!rejection.improvement.strictlyImproved) {
+    addKeyword('strict-improvement-failed');
+  }
+  if (!rejection.improvement.nonRegressing) {
+    addKeyword('regression-detected');
+  }
+  if (!rejection.improvement.benchmarkStable) {
+    addKeyword('benchmark-drift');
+  }
+  addKeyword(`generation-${rejection.attemptedGeneration}`);
+  addKeyword(`factory-${rejection.factoryId}`);
+  addKeyword(rejection.candidate.architectureId);
+  return new StructuredMemoryEntry({
+    architectureId: rejection.candidate.architectureId.length <= 128
+      ? rejection.candidate.architectureId
+      : null,
+    id: `${prefix}:harness-factory-improvement-rejection:${index}`,
+    taskId: isSafeInteger(provenance?.sequence) && provenance.sequence > 0
+      ? `harness-factory-improvement-rejection:${provenance.sequence}`
+      : `harness-factory-improvement-rejection:${index}`,
+    description: 'Historical Harness Factory improvement rejected by safety guards',
+    strategyKey: 'harness-factory-improvement-rejection',
+    evidence: EVIDENCE_LEVELS.OBSERVED,
+    surpriseBand: SURPRISE_BANDS.LOW,
+    surpriseNats: 0,
+    predictionError: false,
+    actionNumber: null,
+    source: MEMORY_SOURCES.HARNESS_FACTORY_IMPROVEMENT_REJECTION,
+    keywords,
+    provenance
+  });
+}
+
 function researchQuestionMemoryEntry(question, prefix, index, provenance = null) {
   const strategyKey = question.action.strategyKey;
   const keywords = [
@@ -1472,6 +1526,20 @@ export class BoundedStructuredMemory {
         provenanceForLedgerRecord(researchPlanExecutionRecords[executionIndex])
       )
     );
+    const improvementRejections = ledger.restoreHarnessFactoryImprovementRejections();
+    const improvementRejectionRecords = ledgerRecordsOfKind(
+      ledger,
+      'harness-factory-improvement-rejection'
+    );
+    const improvementRejectionMemoryEntries = arrayMap(
+      improvementRejections,
+      (rejection, rejectionIndex) => harnessFactoryImprovementRejectionMemoryEntry(
+        rejection,
+        prefix,
+        rejectionIndex,
+        provenanceForLedgerRecord(improvementRejectionRecords[rejectionIndex])
+      )
+    );
     const benchmarkFrontierValidationMemoryEntries = [];
     arrayForEach(benchmarkCampaigns, (campaign, campaignIndex) => {
       const relatedValidations = arrayFilter(
@@ -1568,6 +1636,7 @@ export class BoundedStructuredMemory {
       + benchmarkCampaigns.length
       + benchmarkValidations.length
       + researchPlanExecutionMemoryEntries.length
+      + improvementRejectionMemoryEntries.length
       + benchmarkFrontierValidationMemoryEntries.length
       + benchmarkFrontierValidationStabilityMemoryEntries.length
       + coordinations.length
@@ -1632,6 +1701,9 @@ export class BoundedStructuredMemory {
       );
     });
     arrayForEach(researchPlanExecutionMemoryEntries, (entry) => {
+      arrayPush(entries, entry);
+    });
+    arrayForEach(improvementRejectionMemoryEntries, (entry) => {
       arrayPush(entries, entry);
     });
     arrayForEach(benchmarkFrontierValidationMemoryEntries, (entry) => {

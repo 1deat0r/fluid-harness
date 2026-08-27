@@ -647,7 +647,7 @@
 
       <aside class="hero-visual" aria-label="Verified checkpoint summary">
         <div class="visual-label">Acceptance ledger</div>
-        <div class="visual-number">494/494</div>
+        <div class="visual-number">499/499</div>
         <p class="visual-caption">Marked gates met at the current public checkpoint. This measures the implemented contract—not the distance to artificial general intelligence.</p>
         <div class="metric-row">
           <div class="metric"><span class="metric-label">Tests</span><span class="metric-value">75 / 75</span></div>
@@ -767,7 +767,7 @@
         <article class="feature">
           <div class="item-top"><span class="item-icon" aria-hidden="true">≋</span><span class="state-label">Live</span></div>
           <h3 class="item-title">Learn from history safely</h3>
-          <p class="item-copy">Later proposers can see bounded summaries of prior evidence as observed context—never a restored agent, proof, code, or authority.</p>
+          <p class="item-copy">Later proposers can see bounded summaries of prior evidence—including failed improvements—as observed context, never a restored agent, proof, code, or authority.</p>
         </article>
         <article class="feature">
           <div class="item-top"><span class="item-icon" aria-hidden="true">⊕</span><span class="state-label">Live</span></div>
@@ -798,7 +798,7 @@
         </div>
 
         <div class="evidence-stats">
-          <div class="evidence-stat"><span class="metric-label">Acceptance ledger</span><span class="stat-number">494 / 494</span><span class="stat-text">gates marked met at the public checkpoint</span></div>
+          <div class="evidence-stat"><span class="metric-label">Acceptance ledger</span><span class="stat-number">499 / 499</span><span class="stat-text">gates marked met at the public checkpoint</span></div>
           <div class="evidence-stat"><span class="metric-label">Test suite</span><span class="stat-number">75 / 75</span><span class="stat-text">tests passed in the current local run</span></div>
           <div class="evidence-stat"><span class="metric-label">Deterministic tools</span><span class="stat-number">10</span><span class="stat-text">bounded executor families with verifiers</span></div>
           <div class="evidence-stat"><span class="metric-label">Evaluation modes</span><span class="stat-number">3</span><span class="stat-text">production, research, and skeptic</span></div>
@@ -963,7 +963,7 @@
         learn: {
           eyebrow: 'Step 06 · learn',
           title: 'Archive a receipt and let the next round read only the summary',
-          copy: 'Hash-chain receipts and exact archive locators preserve what happened. A later proposer can combine selected observed historical sources, while runtime authority stays behind the boundary.',
+          copy: 'Hash-chain receipts and exact archive locators preserve what happened—including why an attempted improvement was rejected. A later proposer can combine selected observed historical sources, while runtime authority stays behind the boundary.',
           label: 'Boundary',
           aside: 'History can inform a new run; it cannot restore an old agent, proof, code, or permit.'
         }
@@ -987,7 +987,7 @@
       const lensButtons = Array.from(root.querySelectorAll('[data-lens]'));
       const lensNote = root.querySelector('[data-lens-note]');
       const lensNotes = {
-        now: '<strong>Now:</strong> a runnable, bounded research-and-evaluation factory with an evidence trail. It can compare designs, combine selected historical signals, and preserve what happened, but it does not rewrite itself.',
+        now: '<strong>Now:</strong> a runnable, bounded research-and-evaluation factory with an evidence trail. It can compare designs, preserve failed attempts as lessons, combine selected historical signals, and keep only verified generations, but it does not rewrite itself.',
         limits: '<strong>Limits:</strong> the safety boundary is part of the product. No arbitrary code invention, autonomous deployment, broad live access, or AGI/ASI proof is hiding behind the current demo.',
         direction: '<strong>Direction:</strong> become better at designing and testing harnesses through more research loops, more registered parts, and carefully supervised evolution. That is a roadmap, not a current capability claim.'
       };

@@ -168,12 +168,23 @@ assert.throws(
   }),
   /benchmark contract changed/
 );
-assert.equal(driftFixture.ledger.length, 1);
+assert.equal(driftFixture.ledger.length, 2);
+assert.equal(driftFixture.ledger.verify(), true);
+const driftRejections = driftFixture.ledger.restoreHarnessFactoryImprovementRejections();
+assert.equal(driftRejections.length, 1);
+assert.equal(driftRejections[0].improvement.benchmarkStable, false);
+assert.equal(driftRejections[0].dataOnly, true);
+assert.equal(driftRejections[0].authorityTransferred, false);
+assert.equal(
+  driftFixture.factory.improvementRejections().returnedRejectionCount,
+  1
+);
 
 console.log(
   `FLUID_HARNESS_FACTORY_HOLDOUT_BOUNDARY_OK `
   + `overlapRejected=true duplicateRejected=true forgedRejected=true accessorRejected=true `
   + `budgetRejected=true capacityRejected=true holdoutFailureRejected=true `
   + `holdoutDriftRejected=true failureArchivedWithoutExposure=${failureFixture.ledger.length === 1}`
+  + ` benchmarkDriftArchived=${driftFixture.ledger.length === 2}`
   + ` archiveDisabledFailureUnarchived=${noArchiveFailureFixture.ledger.length === 0}`
 );
