@@ -16,6 +16,8 @@ The `HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION` memory source records only receipt
 
 Receipt persistence requires a non-empty set of exact `{kind, sequence, hash}` result archive locators that resolve to prior verified ledger records of the result type's allowed archive kinds; missing, future, wrong-kind, and wrong-hash references fail closed even if their enclosing record hash is valid.
 
+The receipt-memory source is also accepted by the real factory improvement lifecycle: it can supply only historical context to a fresh process-isolated proposer, while new evaluation, replay, strict-gain, and archive gates remain mandatory.
+
 `factory.benchmark()` evaluates a fresh trusted architecture at finite caller-supplied budget levels, independently replays each level, rejects architecture-definition drift, and returns bounded summary points plus a compute/fitness Pareto frontier. It is evaluation evidence only: it does not adopt, deploy, archive, or restore the candidate.
 
 `factory.benchmarkCampaign()` extends that bounded measurement to multiple fresh trusted architectures on one shared finite budget ladder. It uses fresh multi-candidate search/reproduction runners per level, rejects shared planner/policy definitions and cross-level architecture drift, and returns only candidate/level summaries plus a cross-candidate Pareto frontier; it does not adopt or deploy any candidate. `factory.archiveBenchmarkCampaign()` can persist that result as a separate hash-chained data-only record, and restore returns plain summaries without candidates, runners, reports, or authority.

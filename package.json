@@ -206,6 +206,7 @@
     "harness-factory-research-plan-memory-boundary": "node scripts/check-harness-factory-research-plan-memory-boundary.mjs",
     "harness-factory-research-plan-provenance": "node scripts/check-harness-factory-research-plan-provenance.mjs",
     "harness-factory-research-plan-provenance-boundary": "node scripts/check-harness-factory-research-plan-provenance-boundary.mjs",
+    "harness-factory-research-plan-memory-improvement": "node scripts/check-harness-factory-research-plan-memory-improvement.mjs",
     "harness-factory-benchmark": "node scripts/check-harness-factory-benchmark.mjs",
     "harness-factory-benchmark-boundary": "node scripts/check-harness-factory-benchmark-boundary.mjs",
     "harness-factory-benchmark-campaign": "node scripts/check-harness-factory-benchmark-campaign.mjs",
