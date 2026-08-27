@@ -119,7 +119,7 @@ const context = buildStructuredMemoryContext({
     keywords: ['frontier-stability-unstable']
   }
 });
-assert.equal(memory.size, 9);
+assert.equal(memory.size, 10);
 assert.equal(context.resultCount, 1);
 assert.equal(
   context.results[0].source,

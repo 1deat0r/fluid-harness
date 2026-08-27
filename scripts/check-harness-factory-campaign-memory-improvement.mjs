@@ -83,7 +83,7 @@ const campaignContext = buildStructuredMemoryContext({
     keywords: ['harness-factory-benchmark-campaign']
   }
 });
-assert.equal(memory.size, 2);
+assert.equal(memory.size, 3);
 assert.equal(campaignContext.resultCount, 1);
 assert.equal(
   campaignContext.query.source,

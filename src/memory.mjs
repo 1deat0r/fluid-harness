@@ -54,6 +54,7 @@ export const MEMORY_SOURCES = objectFreeze({
   HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY: 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY',
   HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION: 'HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION',
   HARNESS_FACTORY_IMPROVEMENT_REJECTION: 'HARNESS_FACTORY_IMPROVEMENT_REJECTION',
+  HARNESS_FACTORY_ARCHITECTURE_COVERAGE: 'HARNESS_FACTORY_ARCHITECTURE_COVERAGE',
   COORDINATION: 'COORDINATION',
   DISTRIBUTION_SHIFT: 'DISTRIBUTION_SHIFT',
   ENSEMBLE: 'ENSEMBLE',
@@ -1025,6 +1026,133 @@ function harnessFactoryImprovementRejectionMemoryEntry(
   });
 }
 
+function harnessFactoryArchitectureCoverageMemoryEntries(ledger, prefix) {
+  const discoveries = ledger.restoreArchitectureDiscoveries();
+  const discoveryRecords = ledgerRecordsOfKind(ledger, 'architecture-discovery');
+  const improvementRejections = ledger.restoreHarnessFactoryImprovementRejections();
+  const improvementRejectionRecords = ledgerRecordsOfKind(
+    ledger,
+    'harness-factory-improvement-rejection'
+  );
+  const groups = [];
+  let discoveryIndex = 0;
+  let rejectionIndex = 0;
+  arrayForEach(ledger.records, (record) => {
+    let factoryId = null;
+    let architectureFingerprint = null;
+    let outcome = null;
+    let source = null;
+    if (record.kind === 'architecture-discovery') {
+      const discovery = discoveries[discoveryIndex];
+      const discoveryRecord = discoveryRecords[discoveryIndex];
+      discoveryIndex += 1;
+      if (
+        discovery === undefined
+        || discoveryRecord?.sequence !== record.sequence
+      ) {
+        throw new Error('Structured memory architecture coverage discovery order is inconsistent');
+      }
+      factoryId = discovery.factory?.factoryId ?? null;
+      architectureFingerprint = discovery.winnerArchitectureFingerprint ?? null;
+      outcome = discovery.factory?.status ?? null;
+      source = 'GENERATION';
+    } else if (record.kind === 'harness-factory-improvement-rejection') {
+      const rejection = improvementRejections[rejectionIndex];
+      const rejectionRecord = improvementRejectionRecords[rejectionIndex];
+      rejectionIndex += 1;
+      if (
+        rejection === undefined
+        || rejectionRecord?.sequence !== record.sequence
+      ) {
+        throw new Error('Structured memory architecture coverage rejection order is inconsistent');
+      }
+      factoryId = rejection.factoryId;
+      architectureFingerprint = rejection.candidate.architectureFingerprint;
+      outcome = 'REJECTED';
+      source = 'IMPROVEMENT_REJECTION';
+    }
+    if (factoryId === null) {
+      return;
+    }
+    let group = arrayFind(groups, (candidate) => candidate.factoryId === factoryId);
+    if (group === undefined) {
+      group = {
+        factoryId,
+        adoptedAttemptCount: 0,
+        rejectedAttemptCount: 0,
+        novelAttemptCount: 0,
+        repeatedAttemptCount: 0,
+        unknownArchitectureCount: 0,
+        fingerprints: [],
+        latestRecord: record,
+        sources: []
+      };
+      arrayPush(groups, group);
+    }
+    if (record.sequence > group.latestRecord.sequence) {
+      group.latestRecord = record;
+    }
+    if (outcome === 'ADOPTED') {
+      group.adoptedAttemptCount += 1;
+    } else if (outcome === 'REJECTED') {
+      group.rejectedAttemptCount += 1;
+    }
+    if (source !== null && !arrayIncludes(group.sources, source)) {
+      arrayPush(group.sources, source);
+    }
+    if (architectureFingerprint === null) {
+      group.unknownArchitectureCount += 1;
+    } else if (arrayIncludes(group.fingerprints, architectureFingerprint)) {
+      group.repeatedAttemptCount += 1;
+    } else {
+      group.novelAttemptCount += 1;
+      arrayPush(group.fingerprints, architectureFingerprint);
+    }
+  });
+  return arrayMap(groups, (group, index) => {
+    const attemptCount = group.adoptedAttemptCount + group.rejectedAttemptCount;
+    const keywords = [
+      'harness-factory-architecture-coverage',
+      `attempts-${attemptCount}`,
+      `unique-architectures-${group.fingerprints.length}`,
+      `novel-attempts-${group.novelAttemptCount}`,
+      `repeated-attempts-${group.repeatedAttemptCount}`,
+      `unknown-fingerprint-attempts-${group.unknownArchitectureCount}`,
+      `adopted-attempts-${group.adoptedAttemptCount}`,
+      `rejected-attempts-${group.rejectedAttemptCount}`
+    ];
+    arrayForEach(group.sources, (source) => {
+      if (
+        keywords.length < MAX_STRUCTURED_MEMORY_KEYWORDS
+        && source.length <= MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH
+      ) {
+        arrayPush(keywords, `source-${stringToLowerCase(source)}`);
+      }
+    });
+    const factoryKeyword = `factory-${group.factoryId}`;
+    if (
+      keywords.length < MAX_STRUCTURED_MEMORY_KEYWORDS
+      && factoryKeyword.length <= MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH
+    ) {
+      arrayPush(keywords, factoryKeyword);
+    }
+    return new StructuredMemoryEntry({
+      id: `${prefix}:harness-factory-architecture-coverage:${index}`,
+      taskId: `harness-factory-architecture-coverage:${group.latestRecord.sequence}`,
+      description: `Historical Harness Factory architecture coverage across ${attemptCount} attempts`,
+      strategyKey: 'harness-factory-architecture-coverage',
+      evidence: EVIDENCE_LEVELS.OBSERVED,
+      surpriseBand: SURPRISE_BANDS.LOW,
+      surpriseNats: 0,
+      predictionError: false,
+      actionNumber: null,
+      source: MEMORY_SOURCES.HARNESS_FACTORY_ARCHITECTURE_COVERAGE,
+      keywords,
+      provenance: provenanceForLedgerRecord(group.latestRecord)
+    });
+  });
+}
+
 function researchQuestionMemoryEntry(question, prefix, index, provenance = null) {
   const strategyKey = question.action.strategyKey;
   const keywords = [
@@ -1540,6 +1668,8 @@ export class BoundedStructuredMemory {
         provenanceForLedgerRecord(improvementRejectionRecords[rejectionIndex])
       )
     );
+    const architectureCoverageMemoryEntries =
+      harnessFactoryArchitectureCoverageMemoryEntries(ledger, prefix);
     const benchmarkFrontierValidationMemoryEntries = [];
     arrayForEach(benchmarkCampaigns, (campaign, campaignIndex) => {
       const relatedValidations = arrayFilter(
@@ -1637,6 +1767,7 @@ export class BoundedStructuredMemory {
       + benchmarkValidations.length
       + researchPlanExecutionMemoryEntries.length
       + improvementRejectionMemoryEntries.length
+      + architectureCoverageMemoryEntries.length
       + benchmarkFrontierValidationMemoryEntries.length
       + benchmarkFrontierValidationStabilityMemoryEntries.length
       + coordinations.length
@@ -1704,6 +1835,9 @@ export class BoundedStructuredMemory {
       arrayPush(entries, entry);
     });
     arrayForEach(improvementRejectionMemoryEntries, (entry) => {
+      arrayPush(entries, entry);
+    });
+    arrayForEach(architectureCoverageMemoryEntries, (entry) => {
       arrayPush(entries, entry);
     });
     arrayForEach(benchmarkFrontierValidationMemoryEntries, (entry) => {

@@ -81,6 +81,10 @@ export const HARNESS_FACTORY_HOLDOUT_STATUSES = objectFreeze({
   NOT_RUN: 'NOT_RUN',
   PASSED: 'PASSED'
 });
+export const HARNESS_FACTORY_ARCHITECTURE_ATTEMPT_SOURCES = objectFreeze({
+  GENERATION: 'GENERATION',
+  IMPROVEMENT_REJECTION: 'IMPROVEMENT_REJECTION'
+});
 export const HARNESS_FACTORY_BENCHMARK_VALIDATION_STABILITY_STATUSES = objectFreeze({
   INSUFFICIENT: 'INSUFFICIENT',
   STABLE: 'STABLE',
@@ -151,6 +155,7 @@ export const MAX_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_HISTORY_ENTRIES = 32;
 export const MAX_HARNESS_FACTORY_BENCHMARK_VALIDATION_HISTORY_ENTRIES = 32;
 export const MAX_HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_HISTORY_ENTRIES = 32;
 export const MAX_HARNESS_FACTORY_IMPROVEMENT_REJECTION_HISTORY_ENTRIES = 32;
+export const MAX_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_ENTRIES = 32;
 
 const FACTORY_OPTIONS_KEYS = objectFreeze([
   'factoryId',
@@ -260,7 +265,8 @@ const HARNESS_FACTORY_IMPROVEMENT_MEMORY_SOURCES = objectFreeze([
   'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION',
   'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY',
   'HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION',
-  'HARNESS_FACTORY_IMPROVEMENT_REJECTION'
+  'HARNESS_FACTORY_IMPROVEMENT_REJECTION',
+  'HARNESS_FACTORY_ARCHITECTURE_COVERAGE'
 ]);
 
 function usesHarnessFactoryImprovementMemory(researchContext) {
@@ -364,6 +370,7 @@ const TRUSTED_HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_HISTORIES = weakSetCreate(
 const TRUSTED_HARNESS_FACTORY_IMPROVEMENT_REJECTIONS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_IMPROVEMENT_REJECTION_FACTORIES = weakMapCreate();
 const TRUSTED_HARNESS_FACTORY_IMPROVEMENT_REJECTION_HISTORIES = weakSetCreate();
+const TRUSTED_HARNESS_FACTORY_ARCHITECTURE_COVERAGES = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARKS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGNS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_FACTORIES = weakMapCreate();
@@ -8030,6 +8037,138 @@ export function isTrustedHarnessFactoryImprovementRejectionHistoryReport(report)
       === HarnessFactoryImprovementRejectionHistoryReport.prototype;
 }
 
+function validHarnessFactoryArchitectureCoverageAttempt(attempt) {
+  if (
+    !isPlainObject(attempt)
+    || !isValidArchiveLocator(attempt.archive)
+    || typeof attempt.architectureId !== 'string'
+    || stringTrim(attempt.architectureId) === ''
+    || attempt.architectureFingerprint !== null
+      && (
+        typeof attempt.architectureFingerprint !== 'string'
+        || stringTrim(attempt.architectureFingerprint) === ''
+      )
+    || !isSafeInteger(attempt.attemptedGeneration)
+    || attempt.attemptedGeneration <= 0
+    || !arrayIncludes(
+      [
+        HARNESS_FACTORY_ARCHITECTURE_ATTEMPT_SOURCES.GENERATION,
+        HARNESS_FACTORY_ARCHITECTURE_ATTEMPT_SOURCES.IMPROVEMENT_REJECTION
+      ],
+      attempt.source
+    )
+    || !arrayIncludes(
+      [HARNESS_FACTORY_STATUSES.ADOPTED, HARNESS_FACTORY_STATUSES.REJECTED],
+      attempt.outcome
+    )
+    || typeof attempt.novel !== 'boolean'
+    || typeof attempt.repeated !== 'boolean'
+    || attempt.novel && attempt.repeated
+    || attempt.architectureFingerprint === null
+      && (attempt.novel || attempt.repeated)
+    || attempt.architectureFingerprint !== null
+      && attempt.novel === attempt.repeated
+    || attempt.source === HARNESS_FACTORY_ARCHITECTURE_ATTEMPT_SOURCES.GENERATION
+      && attempt.archive.kind !== 'architecture-discovery'
+    || attempt.source === HARNESS_FACTORY_ARCHITECTURE_ATTEMPT_SOURCES.IMPROVEMENT_REJECTION
+      && (
+        attempt.archive.kind !== 'harness-factory-improvement-rejection'
+        || attempt.outcome !== HARNESS_FACTORY_STATUSES.REJECTED
+      )
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export class HarnessFactoryArchitectureCoverageReport {
+  constructor({
+    factory,
+    consideredAttemptCount,
+    uniqueArchitectureCount,
+    novelAttemptCount,
+    repeatedAttemptCount,
+    unknownArchitectureCount,
+    adoptedAttemptCount,
+    rejectedAttemptCount,
+    attempts,
+    truncated,
+    token
+  }) {
+    if (
+      token !== FACTORY_TOKEN
+      || !isTrustedHarnessFactory(factory)
+      || !isSafeInteger(consideredAttemptCount)
+      || consideredAttemptCount < 0
+      || !isSafeInteger(uniqueArchitectureCount)
+      || uniqueArchitectureCount < 0
+      || !isSafeInteger(novelAttemptCount)
+      || novelAttemptCount < 0
+      || !isSafeInteger(repeatedAttemptCount)
+      || repeatedAttemptCount < 0
+      || !isSafeInteger(unknownArchitectureCount)
+      || unknownArchitectureCount < 0
+      || !isSafeInteger(adoptedAttemptCount)
+      || adoptedAttemptCount < 0
+      || !isSafeInteger(rejectedAttemptCount)
+      || rejectedAttemptCount < 0
+      || !arrayIsArray(attempts)
+      || !arrayEvery(
+        attempts,
+        validHarnessFactoryArchitectureCoverageAttempt
+      )
+      || typeof truncated !== 'boolean'
+    ) {
+      throw new TypeError(
+        'Harness Factory architecture coverage requires trusted lifecycle evidence'
+      );
+    }
+    if (
+      attempts.length > MAX_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_ENTRIES
+      || attempts.length > consideredAttemptCount
+      || uniqueArchitectureCount !== novelAttemptCount
+      || novelAttemptCount + repeatedAttemptCount + unknownArchitectureCount
+        !== consideredAttemptCount
+      || adoptedAttemptCount + rejectedAttemptCount !== consideredAttemptCount
+      || truncated !== (
+        consideredAttemptCount > MAX_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_ENTRIES
+      )
+    ) {
+      throw new TypeError('Harness Factory architecture coverage counts are inconsistent');
+    }
+    this.factoryId = factory.factoryId;
+    this.consideredAttemptCount = consideredAttemptCount;
+    this.returnedAttemptCount = attempts.length;
+    this.maxEntries = MAX_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_ENTRIES;
+    this.uniqueArchitectureCount = uniqueArchitectureCount;
+    this.novelAttemptCount = novelAttemptCount;
+    this.repeatedAttemptCount = repeatedAttemptCount;
+    this.unknownArchitectureCount = unknownArchitectureCount;
+    this.adoptedAttemptCount = adoptedAttemptCount;
+    this.rejectedAttemptCount = rejectedAttemptCount;
+    this.truncated = truncated;
+    this.attempts = objectFreeze(arrayMap(
+      attempts,
+      (attempt) => objectFreeze({
+        ...attempt,
+        archive: objectFreeze({ ...attempt.archive })
+      })
+    ));
+    this.dataOnly = true;
+    this.authorityTransferred = false;
+    weakSetAdd(TRUSTED_HARNESS_FACTORY_ARCHITECTURE_COVERAGES, this);
+    objectFreeze(this);
+  }
+}
+
+export function isTrustedHarnessFactoryArchitectureCoverageReport(report) {
+  return typeof report === 'object'
+    && report !== null
+    && weakSetHas(TRUSTED_HARNESS_FACTORY_ARCHITECTURE_COVERAGES, report)
+    && objectGetPrototypeOf(report)
+      === HarnessFactoryArchitectureCoverageReport.prototype;
+}
+
 export class HarnessFactoryReport {
   constructor({
     factory,
@@ -8502,6 +8641,110 @@ function factoryImprovementRejectionHistoryReportFromLedger(ledger, factory) {
   });
 }
 
+function factoryArchitectureCoverageReportFromLedger(ledger, factory) {
+  const discoveries = ledger.restoreArchitectureDiscoveries();
+  const rejections = ledger.restoreHarnessFactoryImprovementRejections();
+  const attempts = [];
+  const seenFingerprints = [];
+  let discoveryIndex = 0;
+  let rejectionIndex = 0;
+  let novelAttemptCount = 0;
+  let repeatedAttemptCount = 0;
+  let unknownArchitectureCount = 0;
+  let adoptedAttemptCount = 0;
+  let rejectedAttemptCount = 0;
+
+  arrayForEach(ledger.records, (record) => {
+    let factoryId = null;
+    let architectureId = null;
+    let architectureFingerprint = null;
+    let attemptedGeneration = null;
+    let outcome = null;
+    let source = null;
+
+    if (record.kind === 'architecture-discovery') {
+      const discovery = discoveries[discoveryIndex];
+      discoveryIndex += 1;
+      if (discovery === undefined) {
+        throw new Error('Harness Factory architecture coverage discovery order is inconsistent');
+      }
+      if (discovery.factory !== null) {
+        factoryId = discovery.factory.factoryId;
+        architectureId = discovery.winnerId;
+        architectureFingerprint = discovery.winnerArchitectureFingerprint ?? null;
+        attemptedGeneration = discovery.factory.generation;
+        outcome = discovery.factory.status;
+        source = HARNESS_FACTORY_ARCHITECTURE_ATTEMPT_SOURCES.GENERATION;
+      }
+    } else if (record.kind === 'harness-factory-improvement-rejection') {
+      const rejection = rejections[rejectionIndex];
+      rejectionIndex += 1;
+      if (rejection === undefined) {
+        throw new Error('Harness Factory architecture coverage rejection order is inconsistent');
+      }
+      factoryId = rejection.factoryId;
+      architectureId = rejection.candidate.architectureId;
+      architectureFingerprint = rejection.candidate.architectureFingerprint;
+      attemptedGeneration = rejection.attemptedGeneration;
+      outcome = HARNESS_FACTORY_STATUSES.REJECTED;
+      source = HARNESS_FACTORY_ARCHITECTURE_ATTEMPT_SOURCES.IMPROVEMENT_REJECTION;
+    }
+
+    if (factoryId !== factory.factoryId) {
+      return;
+    }
+    const hasFingerprint = architectureFingerprint !== null;
+    let novel = false;
+    let repeated = false;
+    if (!hasFingerprint) {
+      unknownArchitectureCount += 1;
+    } else if (arrayIncludes(seenFingerprints, architectureFingerprint)) {
+      repeated = true;
+      repeatedAttemptCount += 1;
+    } else {
+      novel = true;
+      novelAttemptCount += 1;
+      arrayPush(seenFingerprints, architectureFingerprint);
+    }
+    if (outcome === HARNESS_FACTORY_STATUSES.ADOPTED) {
+      adoptedAttemptCount += 1;
+    } else if (outcome === HARNESS_FACTORY_STATUSES.REJECTED) {
+      rejectedAttemptCount += 1;
+    }
+    arrayPush(attempts, objectFreeze({
+      archive: archiveLocator(record),
+      architectureFingerprint,
+      architectureId,
+      attemptedGeneration,
+      novel,
+      outcome,
+      repeated,
+      source
+    }));
+  });
+
+  const truncated = attempts.length > MAX_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_ENTRIES;
+  const returnedAttempts = truncated
+    ? arraySlice(
+      attempts,
+      attempts.length - MAX_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_ENTRIES
+    )
+    : attempts;
+  return new HarnessFactoryArchitectureCoverageReport({
+    factory,
+    consideredAttemptCount: attempts.length,
+    uniqueArchitectureCount: seenFingerprints.length,
+    novelAttemptCount,
+    repeatedAttemptCount,
+    unknownArchitectureCount,
+    adoptedAttemptCount,
+    rejectedAttemptCount,
+    attempts: returnedAttempts,
+    truncated,
+    token: FACTORY_TOKEN
+  });
+}
+
 export class HarnessFactory {
   constructor(options = {}) {
     requireDataObject(options, 'Harness Factory options', FACTORY_OPTIONS_KEYS);
@@ -8580,6 +8823,8 @@ export class HarnessFactory {
         !== MEMORY_SOURCES.HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION
       && memoryQuery.source
         !== MEMORY_SOURCES.HARNESS_FACTORY_IMPROVEMENT_REJECTION
+      && memoryQuery.source
+        !== MEMORY_SOURCES.HARNESS_FACTORY_ARCHITECTURE_COVERAGE
     ) {
       throw new TypeError(
         'Harness Factory improvement memoryQuery must use ARCHITECTURE_DISCOVERY source, '
@@ -8588,7 +8833,8 @@ export class HarnessFactory {
         + 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION source, or '
         + 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY source, or '
         + 'HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION source, or '
-        + 'HARNESS_FACTORY_IMPROVEMENT_REJECTION source'
+        + 'HARNESS_FACTORY_IMPROVEMENT_REJECTION source, or '
+        + 'HARNESS_FACTORY_ARCHITECTURE_COVERAGE source'
       );
     }
     if (requestedMemorySources !== null) {
@@ -8736,6 +8982,17 @@ export class HarnessFactory {
     }
     const historicalLedger = verifiedLedgerSnapshot(this.ledger);
     return factoryImprovementRejectionHistoryReportFromLedger(
+      historicalLedger,
+      this
+    );
+  }
+
+  architectureCoverage() {
+    if (!isTrustedHarnessFactory(this)) {
+      throw new TypeError('Harness Factory requires an exact trusted factory');
+    }
+    const historicalLedger = verifiedLedgerSnapshot(this.ledger);
+    return factoryArchitectureCoverageReportFromLedger(
       historicalLedger,
       this
     );
@@ -9813,5 +10070,6 @@ objectFreeze(HarnessFactoryBenchmarkFrontierValidationStabilityResearchExecution
 objectFreeze(HarnessFactoryValidationReport.prototype);
 objectFreeze(HarnessFactoryImprovementRejectionReport.prototype);
 objectFreeze(HarnessFactoryImprovementRejectionHistoryReport.prototype);
+objectFreeze(HarnessFactoryArchitectureCoverageReport.prototype);
 objectFreeze(HarnessFactoryReport.prototype);
 objectFreeze(HarnessFactory.prototype);

@@ -73,7 +73,7 @@ const context = buildStructuredMemoryContext({
     keywords: ['harness-factory-research-plan-execution']
   }
 });
-assert.equal(memory.size, 2);
+assert.equal(memory.size, 3);
 assert.equal(context.resultCount, 1);
 assert.equal(context.query.source, MEMORY_SOURCES.HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION);
 const entry = context.results[0];

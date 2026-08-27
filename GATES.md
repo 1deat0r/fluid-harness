@@ -7,7 +7,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 250.838811 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 247.752413 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -17,7 +17,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=515 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=520 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -42,7 +42,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.437},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.368},{"
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.873},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.455},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2498,3 +2498,28 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
   CHECK: node scripts/check-harness-factory-improvement-rejection-memory-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_MEMORY_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_IMPROVEMENT_REJECTION_MEMORY_BOUNDARY_OK invalidSourceRejected=true accessorRejected=true duplicateSourceRejected=true capacityRejected=true artifactSuppressed=true tamperedRejected=true ledgerPreserved=true historical
+
+- [x] G500: a factory exposes verified architecture-attempt coverage across adopted/rejected generations and rejected improvements with unique and repeated fingerprint counts
+  CHECK: node scripts/check-harness-factory-architecture-coverage.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_OK attempts=2 unique=1 novel=1 repeated=1 adopted=1 rejected=1 sources=GENERATION,IMPROVEMENT_REJECTION dataOnly=true authorityTransferred=false
+
+- [x] G501: architecture-attempt coverage round-trips from the hash chain, caps returned attempts, and remains frozen data-only without restoring runtime artifacts or authority
+  CHECK: node scripts/check-harness-factory-architecture-coverage-history.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_HISTORY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_HISTORY_OK considered=34 returned=32 max=32 truncated=true unique=1 repeated=33 generations=1 roundTrip=32
+
+- [x] G502: architecture-attempt coverage rejects forged, proxied, foreign, accessor-bearing, tampered, and artifact-bearing paths while preserving the verified ledger boundary
+  CHECK: node scripts/check-harness-factory-architecture-coverage-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_BOUNDARY_OK forgedRejected=true proxyRejected=true accessorRejected=true artifactRejected=true foreignExcluded=true ledgerPreserved=true authoritySuppressed=true
+
+- [x] G503: architecture-attempt coverage becomes a source-filtered observed-only memory signal and can combine with discovery and rejection history for a fresh proposer
+  CHECK: node scripts/check-harness-factory-architecture-coverage-memory.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_MEMORY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_MEMORY_OK coverageMatches=1 combinedMatches=3 sources=ARCHITECTURE_DISCOVERY,HARNESS_FACTORY_ARCHITECTURE_COVERAGE,HARNESS_FACTORY_IMPROVEMENT_REJECTION freshProposer=true historicalOnly=true auth
+
+- [x] G504: architecture-coverage memory rejects capacity, source, accessor, tamper, and runtime-artifact leakage paths without changing the ledger or transferring authority
+  CHECK: node scripts/check-harness-factory-architecture-coverage-memory-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_MEMORY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_MEMORY_BOUNDARY_OK invalidSourceRejected=true accessorRejected=true duplicateSourceRejected=true capacityRejected=true artifactSuppressed=true tamperedRejected=true ledgerPreserved=true historical

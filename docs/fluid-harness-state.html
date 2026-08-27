@@ -459,6 +459,19 @@
     .roadmap-item .state-label { color: var(--violet); border-color: color-mix(in srgb, var(--violet) 32%, var(--line)); }
     .item-title { margin-top: 1px; color: var(--ink); font-size: 1rem; font-weight: 500; line-height: 1.25; }
     .item-copy { color: var(--muted); font-size: .87rem; line-height: 1.48; }
+    .signal-label {
+      display: inline-block;
+      max-width: 100%;
+      margin-top: 12px;
+      padding: 4px 7px;
+      overflow-wrap: anywhere;
+      border: 1px solid color-mix(in srgb, var(--mint) 32%, var(--line));
+      border-radius: 6px;
+      color: var(--mint);
+      background: var(--mint-soft);
+      font: 500 .61rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: .02em;
+    }
 
     .evidence-panel {
       padding: 25px;
@@ -647,7 +660,7 @@
 
       <aside class="hero-visual" aria-label="Verified checkpoint summary">
         <div class="visual-label">Acceptance ledger</div>
-        <div class="visual-number">499/499</div>
+        <div class="visual-number">504/504</div>
         <p class="visual-caption">Marked gates met at the current public checkpoint. This measures the implemented contract—not the distance to artificial general intelligence.</p>
         <div class="metric-row">
           <div class="metric"><span class="metric-label">Tests</span><span class="metric-value">75 / 75</span></div>
@@ -726,7 +739,7 @@
         <button class="lens-button" type="button" data-lens="limits" aria-pressed="false">What is blocked</button>
         <button class="lens-button" type="button" data-lens="direction" aria-pressed="false">Where it is heading</button>
       </div>
-      <p class="lens-note" aria-live="polite" data-lens-note><strong>Now:</strong> a runnable, bounded research-and-evaluation factory with an evidence trail. It can compare designs, combine selected historical signals, and preserve what happened, but it does not rewrite itself.</p>
+      <p class="lens-note" aria-live="polite" data-lens-note><strong>Now:</strong> a runnable, bounded research-and-evaluation factory with an evidence trail. It can compare designs, track whether attempts are genuinely new or repeated, combine selected historical signals, and preserve what happened, but it does not rewrite itself.</p>
     </section>
 
     <section class="section" id="capabilities" aria-labelledby="capabilities-heading">
@@ -770,6 +783,12 @@
           <p class="item-copy">Later proposers can see bounded summaries of prior evidence—including failed improvements—as observed context, never a restored agent, proof, code, or authority.</p>
         </article>
         <article class="feature">
+          <div class="item-top"><span class="item-icon" aria-hidden="true">◌</span><span class="state-label">Live</span></div>
+          <h3 class="item-title">Track real exploration</h3>
+          <p class="item-copy">Count distinct architecture fingerprints and repeated attempts across adopted generations and rejected improvements, then pass that coverage signal to the next proposer.</p>
+          <code class="signal-label">HARNESS_FACTORY_ARCHITECTURE_COVERAGE</code>
+        </article>
+        <article class="feature">
           <div class="item-top"><span class="item-icon" aria-hidden="true">⊕</span><span class="state-label">Live</span></div>
           <h3 class="item-title">Combine historical signals</h3>
           <p class="item-copy">Query several trusted evidence sources together, such as architecture discoveries and research receipts, while keeping runtime authority behind the boundary.</p>
@@ -798,7 +817,7 @@
         </div>
 
         <div class="evidence-stats">
-          <div class="evidence-stat"><span class="metric-label">Acceptance ledger</span><span class="stat-number">499 / 499</span><span class="stat-text">gates marked met at the public checkpoint</span></div>
+          <div class="evidence-stat"><span class="metric-label">Acceptance ledger</span><span class="stat-number">504 / 504</span><span class="stat-text">gates marked met at the public checkpoint</span></div>
           <div class="evidence-stat"><span class="metric-label">Test suite</span><span class="stat-number">75 / 75</span><span class="stat-text">tests passed in the current local run</span></div>
           <div class="evidence-stat"><span class="metric-label">Deterministic tools</span><span class="stat-number">10</span><span class="stat-text">bounded executor families with verifiers</span></div>
           <div class="evidence-stat"><span class="metric-label">Evaluation modes</span><span class="stat-number">3</span><span class="stat-text">production, research, and skeptic</span></div>
@@ -963,7 +982,7 @@
         learn: {
           eyebrow: 'Step 06 · learn',
           title: 'Archive a receipt and let the next round read only the summary',
-          copy: 'Hash-chain receipts and exact archive locators preserve what happened—including why an attempted improvement was rejected. A later proposer can combine selected observed historical sources, while runtime authority stays behind the boundary.',
+          copy: 'Hash-chain receipts and exact archive locators preserve what happened—including why an attempted improvement was rejected and whether an architecture attempt was new or repeated. A later proposer can combine selected observed historical sources, while runtime authority stays behind the boundary.',
           label: 'Boundary',
           aside: 'History can inform a new run; it cannot restore an old agent, proof, code, or permit.'
         }

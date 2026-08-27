@@ -58,7 +58,7 @@ const memory = memoryFromLedger({
   maxEntries: 8,
   idPrefix: 'harness-factory-research-plan-memory-boundary'
 });
-assert.equal(memory.size, 2);
+assert.equal(memory.size, 3);
 assert.throws(
   () => memoryFromLedger({
     ledger: fixture.ledger,

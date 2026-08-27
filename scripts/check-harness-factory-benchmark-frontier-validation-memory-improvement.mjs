@@ -96,7 +96,7 @@ const incompleteContext = buildStructuredMemoryContext({
     keywords: ['frontier-validation-incomplete']
   }
 });
-assert.equal(incompleteMemory.size, 4);
+assert.equal(incompleteMemory.size, 5);
 assert.equal(incompleteContext.resultCount, 1);
 assert.equal(
   incompleteContext.results[0].source,
