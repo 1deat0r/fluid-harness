@@ -7712,7 +7712,9 @@ export class HarnessFactoryReport {
       || this.researchContext?.query?.source
         === MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION
       || this.researchContext?.query?.source
-        === MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY;
+        === MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY
+      || this.researchContext?.query?.source
+        === MEMORY_SOURCES.HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION;
     this.retiredCandidateIds = retirement.candidateIds;
     this.retiredCandidateCount = retirement.count;
     this.archive = archive;
@@ -8117,13 +8119,16 @@ export class HarnessFactory {
       && memoryQuery.source !== MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION
       && memoryQuery.source
         !== MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY
+      && memoryQuery.source
+        !== MEMORY_SOURCES.HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION
     ) {
       throw new TypeError(
         'Harness Factory improvement memoryQuery must use ARCHITECTURE_DISCOVERY source, '
         + 'HARNESS_FACTORY_BENCHMARK_CAMPAIGN source, or '
         + 'HARNESS_FACTORY_BENCHMARK_VALIDATION source, or '
         + 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION source, or '
-        + 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY source'
+        + 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY source, or '
+        + 'HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION source'
       );
     }
     const normalizedMemoryQuery = {

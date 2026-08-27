@@ -52,6 +52,7 @@ export const MEMORY_SOURCES = objectFreeze({
   HARNESS_FACTORY_BENCHMARK_VALIDATION: 'HARNESS_FACTORY_BENCHMARK_VALIDATION',
   HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION: 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION',
   HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY: 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY',
+  HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION: 'HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION',
   COORDINATION: 'COORDINATION',
   DISTRIBUTION_SHIFT: 'DISTRIBUTION_SHIFT',
   ENSEMBLE: 'ENSEMBLE',
@@ -860,6 +861,56 @@ function harnessFactoryBenchmarkFrontierValidationStabilityMemoryEntries(
   });
 }
 
+function harnessFactoryResearchPlanExecutionMemoryEntry(
+  execution,
+  prefix,
+  index,
+  provenance = null
+) {
+  const resolutionStatus = execution.targetResolved ? 'resolved' : 'unresolved';
+  const resultKind = execution.resultType === 'HARNESS_FACTORY_REPORT'
+    ? 'factory'
+    : execution.resultType === 'HARNESS_FACTORY_VALIDATION'
+      ? 'validation'
+      : execution.resultType === 'HARNESS_FACTORY_BENCHMARK_VALIDATION'
+        ? 'benchmark-validation'
+        : execution.resultType
+          === 'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY_RESEARCH'
+          ? 'frontier-stability'
+          : 'frontier-validation';
+  const keywords = [
+    'harness-factory-research-plan-execution',
+    `target-${execution.target}`,
+    `bridge-${execution.bridge}`,
+    `result-${resultKind}`,
+    `status-${execution.resultStatus}`,
+    resolutionStatus,
+    `archives-${execution.resultArchiveSequences.length}`
+  ];
+  const factoryKeyword = `factory-${execution.factoryId}`;
+  if (
+    factoryKeyword.length <= MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH
+  ) {
+    arrayPush(keywords, factoryKeyword);
+  }
+  return new StructuredMemoryEntry({
+    id: `${prefix}:harness-factory-research-plan-execution:${index}`,
+    taskId: isSafeInteger(provenance?.sequence) && provenance.sequence > 0
+      ? `harness-factory-research-plan-execution:${provenance.sequence}`
+      : `harness-factory-research-plan-execution:${index}`,
+    description: `Historical Harness Factory research plan execution ${execution.resultStatus} for ${execution.target}`,
+    strategyKey: 'harness-factory-research-plan-execution',
+    evidence: EVIDENCE_LEVELS.OBSERVED,
+    surpriseBand: SURPRISE_BANDS.LOW,
+    surpriseNats: 0,
+    predictionError: false,
+    actionNumber: null,
+    source: MEMORY_SOURCES.HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION,
+    keywords,
+    provenance
+  });
+}
+
 function researchQuestionMemoryEntry(question, prefix, index, provenance = null) {
   const strategyKey = question.action.strategyKey;
   const keywords = [
@@ -1347,6 +1398,20 @@ export class BoundedStructuredMemory {
       ledger,
       'harness-factory-benchmark-validation'
     );
+    const researchPlanExecutions = ledger.restoreHarnessFactoryResearchPlanExecutions();
+    const researchPlanExecutionRecords = ledgerRecordsOfKind(
+      ledger,
+      'harness-factory-research-plan-execution'
+    );
+    const researchPlanExecutionMemoryEntries = arrayMap(
+      researchPlanExecutions,
+      (execution, executionIndex) => harnessFactoryResearchPlanExecutionMemoryEntry(
+        execution,
+        prefix,
+        executionIndex,
+        provenanceForLedgerRecord(researchPlanExecutionRecords[executionIndex])
+      )
+    );
     const benchmarkFrontierValidationMemoryEntries = [];
     arrayForEach(benchmarkCampaigns, (campaign, campaignIndex) => {
       const relatedValidations = arrayFilter(
@@ -1442,6 +1507,7 @@ export class BoundedStructuredMemory {
       + discoveries.length
       + benchmarkCampaigns.length
       + benchmarkValidations.length
+      + researchPlanExecutionMemoryEntries.length
       + benchmarkFrontierValidationMemoryEntries.length
       + benchmarkFrontierValidationStabilityMemoryEntries.length
       + coordinations.length
@@ -1504,6 +1570,9 @@ export class BoundedStructuredMemory {
           provenanceForLedgerRecord(benchmarkValidationRecords[validationIndex])
         )
       );
+    });
+    arrayForEach(researchPlanExecutionMemoryEntries, (entry) => {
+      arrayPush(entries, entry);
     });
     arrayForEach(benchmarkFrontierValidationMemoryEntries, (entry) => {
       arrayPush(entries, entry);
