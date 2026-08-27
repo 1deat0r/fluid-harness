@@ -12,7 +12,10 @@ import {
 import {
   isTrustedAgentArchitectureCandidate
 } from './agent-architecture.mjs';
-import { isTrustedAgentPlannerCase } from './agent-search.mjs';
+import {
+  isTrustedAgentPlannerCandidate,
+  isTrustedAgentPlannerCase
+} from './agent-search.mjs';
 import {
   isTrustedAgentRunReport
 } from './agent.mjs';
@@ -57,6 +60,7 @@ import {
   objectFreeze,
   objectGetOwnPropertyDescriptor,
   objectGetPrototypeOf,
+  objectKeys,
   reflectOwnKeys,
   setFromArray,
   setSize,
@@ -84,6 +88,13 @@ export const HARNESS_FACTORY_HOLDOUT_STATUSES = objectFreeze({
 export const HARNESS_FACTORY_ARCHITECTURE_ATTEMPT_SOURCES = objectFreeze({
   GENERATION: 'GENERATION',
   IMPROVEMENT_REJECTION: 'IMPROVEMENT_REJECTION'
+});
+export const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_SOURCES = objectFreeze({
+  PROCESS_ISOLATED: 'PROCESS_ISOLATED'
+});
+export const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_STATUSES = objectFreeze({
+  NOVEL: 'NOVEL',
+  REPEATED: 'REPEATED'
 });
 export const HARNESS_FACTORY_BENCHMARK_VALIDATION_STABILITY_STATUSES = objectFreeze({
   INSUFFICIENT: 'INSUFFICIENT',
@@ -156,6 +167,7 @@ export const MAX_HARNESS_FACTORY_BENCHMARK_VALIDATION_HISTORY_ENTRIES = 32;
 export const MAX_HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_HISTORY_ENTRIES = 32;
 export const MAX_HARNESS_FACTORY_IMPROVEMENT_REJECTION_HISTORY_ENTRIES = 32;
 export const MAX_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_ENTRIES = 32;
+export const MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_ENTRIES = 8;
 
 const FACTORY_OPTIONS_KEYS = objectFreeze([
   'factoryId',
@@ -179,6 +191,11 @@ const MANUFACTURE_OPTIONS_KEYS = objectFreeze([
   'agentContext',
   'agentReproduction',
   'toolRegistry'
+]);
+const ARCHITECTURE_PROPOSAL_OPTIONS_KEYS = objectFreeze([
+  'goal',
+  'plannerCandidates',
+  'researchContext'
 ]);
 const RESEARCH_PLAN_OPTIONS_KEYS = objectFreeze(['maxItems']);
 const RESEARCH_PLAN_ITEM_KEYS = objectFreeze([
@@ -371,6 +388,7 @@ const TRUSTED_HARNESS_FACTORY_IMPROVEMENT_REJECTIONS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_IMPROVEMENT_REJECTION_FACTORIES = weakMapCreate();
 const TRUSTED_HARNESS_FACTORY_IMPROVEMENT_REJECTION_HISTORIES = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_ARCHITECTURE_COVERAGES = weakSetCreate();
+const TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPORTS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARKS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGNS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_FACTORIES = weakMapCreate();
@@ -454,6 +472,29 @@ function requireTrustedArchitectureCandidates(candidates) {
     !== normalizedCandidates.length
   ) {
     throw new TypeError('Harness Factory disposal candidate ids must be unique');
+  }
+  return objectFreeze(arraySlice(normalizedCandidates));
+}
+
+function requireTrustedFactoryPlannerCandidates(plannerCandidates) {
+  if (!arrayIsArray(plannerCandidates) || plannerCandidates.length === 0) {
+    throw new TypeError('Harness Factory architecture proposal requires planner candidates');
+  }
+  const normalizedCandidates = arrayMap(plannerCandidates, (candidate) => {
+    if (!isTrustedAgentPlannerCandidate(candidate)) {
+      throw new TypeError(
+        'Harness Factory architecture proposal requires trusted planner candidates'
+      );
+    }
+    return candidate;
+  });
+  if (
+    setSize(setFromArray(arrayMap(normalizedCandidates, ({ id }) => id)))
+    !== normalizedCandidates.length
+  ) {
+    throw new TypeError(
+      'Harness Factory architecture proposal planner candidate ids must be unique'
+    );
   }
   return objectFreeze(arraySlice(normalizedCandidates));
 }
@@ -8037,6 +8078,322 @@ export function isTrustedHarnessFactoryImprovementRejectionHistoryReport(report)
       === HarnessFactoryImprovementRejectionHistoryReport.prototype;
 }
 
+function harnessFactoryArchitectureProposalResearchSummary(researchContext) {
+  if (researchContext === null) {
+    return null;
+  }
+  if (!isPlainObject(researchContext)) {
+    throw new TypeError(
+      'Harness Factory architecture proposal research context must be a plain object'
+    );
+  }
+  const normalized = snapshotProcessData(researchContext);
+  if (
+    normalized.source !== 'STRUCTURED_MEMORY'
+    || !isSafeInteger(normalized.resultCount)
+    || normalized.resultCount < 0
+    || !isPlainObject(normalized.sourceCounts)
+    || normalized.dataOnly !== true
+    || normalized.historicalOnly !== true
+    || normalized.authorityTransferred !== false
+  ) {
+    throw new TypeError(
+      'Harness Factory architecture proposal research context is invalid'
+    );
+  }
+  let sourceCountTotal = 0;
+  arrayForEach(objectKeys(normalized.sourceCounts), (source) => {
+    const count = normalized.sourceCounts[source];
+    if (!isSafeInteger(count) || count < 0) {
+      throw new TypeError(
+        'Harness Factory architecture proposal research context source counts are invalid'
+      );
+    }
+    sourceCountTotal += count;
+  });
+  if (sourceCountTotal !== normalized.resultCount) {
+    throw new TypeError(
+      'Harness Factory architecture proposal research context source counts are invalid'
+    );
+  }
+  return objectFreeze({
+    source: normalized.source,
+    query: normalized.query,
+    sourceCounts: normalized.sourceCounts,
+    resultCount: normalized.resultCount,
+    dataOnly: true,
+    historicalOnly: true,
+    authorityTransferred: false
+  });
+}
+
+function factoryArchitectureConfigurationFromCandidate(candidate) {
+  if (!isTrustedAgentArchitectureCandidate(candidate)) {
+    throw new TypeError(
+      'Harness Factory architecture proposal requires a trusted resolved candidate'
+    );
+  }
+  const policy = candidate.createPolicy();
+  const normalizedPolicy = objectFreeze({
+    maxEpisodes: policy.maxEpisodes,
+    maxToolCallsPerEpisode: policy.maxToolCallsPerEpisode
+  });
+  return objectFreeze({
+    architectureFingerprint: jsonStringify({
+      components: candidate.components,
+      plannerCandidateId: candidate.plannerCandidate.id,
+      policy: jsonStringify(normalizedPolicy)
+    }),
+    components: candidate.components,
+    plannerCandidateId: candidate.plannerCandidate.id,
+    policy: normalizedPolicy
+  });
+}
+
+function factoryArchitectureHistoricalFingerprintCounts(ledger, factoryId) {
+  const counts = [];
+  const addFingerprint = (fingerprint) => {
+    if (
+      typeof fingerprint !== 'string'
+      || stringTrim(fingerprint) === ''
+    ) {
+      return;
+    }
+    const current = arrayFind(
+      counts,
+      (entry) => entry.fingerprint === fingerprint
+    );
+    if (current === undefined) {
+      arrayPush(counts, { fingerprint, count: 1 });
+    } else {
+      current.count += 1;
+    }
+  };
+  arrayForEach(
+    factoryHistoryFromLedger(ledger, factoryId),
+    ({ discovery }) => addFingerprint(discovery.winnerArchitectureFingerprint ?? null)
+  );
+  arrayForEach(
+    ledger.restoreHarnessFactoryImprovementRejections(),
+    (rejection) => {
+      if (rejection.factoryId === factoryId) {
+        addFingerprint(rejection.candidate.architectureFingerprint);
+      }
+    }
+  );
+  return objectFreeze(arrayMap(
+    counts,
+    (entry) => objectFreeze({ ...entry })
+  ));
+}
+
+const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_SUMMARY_KEYS = objectFreeze([
+  'architectureFingerprint',
+  'authorityTransferred',
+  'batchDuplicate',
+  'components',
+  'dataOnly',
+  'historicalMatchCount',
+  'id',
+  'novel',
+  'plannerCandidateId',
+  'policy',
+  'repeated',
+  'status'
+]);
+
+function validHarnessFactoryArchitectureProposalSummary(proposal) {
+  if (
+    !isPlainObject(proposal)
+    || reflectOwnKeys(proposal).length
+      !== HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_SUMMARY_KEYS.length
+    || arraySome(
+      reflectOwnKeys(proposal),
+      (key) => !arrayIncludes(
+        HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_SUMMARY_KEYS,
+        key
+      )
+    )
+    || typeof proposal.id !== 'string'
+    || stringTrim(proposal.id) === ''
+    || typeof proposal.plannerCandidateId !== 'string'
+    || stringTrim(proposal.plannerCandidateId) === ''
+    || typeof proposal.architectureFingerprint !== 'string'
+    || stringTrim(proposal.architectureFingerprint) === ''
+    || !isPlainObject(proposal.components)
+    || !isPlainObject(proposal.policy)
+    || !isSafeInteger(proposal.policy.maxEpisodes)
+    || proposal.policy.maxEpisodes <= 0
+    || !isSafeInteger(proposal.policy.maxToolCallsPerEpisode)
+    || proposal.policy.maxToolCallsPerEpisode <= 0
+    || !isSafeInteger(proposal.historicalMatchCount)
+    || proposal.historicalMatchCount < 0
+    || typeof proposal.batchDuplicate !== 'boolean'
+    || typeof proposal.novel !== 'boolean'
+    || typeof proposal.repeated !== 'boolean'
+    || !arrayIncludes(
+      [
+        HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_STATUSES.NOVEL,
+        HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_STATUSES.REPEATED
+      ],
+      proposal.status
+    )
+    || proposal.novel !== (
+      proposal.status === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_STATUSES.NOVEL
+    )
+    || proposal.repeated !== !proposal.novel
+    || proposal.novel && (
+      proposal.historicalMatchCount !== 0
+      || proposal.batchDuplicate
+    )
+    || proposal.repeated && (
+      proposal.historicalMatchCount === 0
+      && !proposal.batchDuplicate
+    )
+    || proposal.dataOnly !== true
+    || proposal.authorityTransferred !== false
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export class HarnessFactoryArchitectureProposalReport {
+  constructor({
+    factory,
+    goal,
+    source,
+    researchContext,
+    proposals,
+    token
+  }) {
+    if (
+      token !== FACTORY_TOKEN
+      || !isTrustedHarnessFactory(factory)
+      || typeof goal !== 'string'
+      || stringTrim(goal) === ''
+      || !arrayIncludes(
+        [HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_SOURCES.PROCESS_ISOLATED],
+        source
+      )
+      || !arrayIsArray(proposals)
+      || proposals.length === 0
+      || proposals.length > MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_ENTRIES
+      || arraySome(
+        proposals,
+        (proposal) => !validHarnessFactoryArchitectureProposalSummary(proposal)
+      )
+    ) {
+      throw new TypeError(
+        'Harness Factory architecture proposal report requires trusted data-only evidence'
+      );
+    }
+    const normalizedResearchContext =
+      harnessFactoryArchitectureProposalResearchSummary(researchContext);
+    this.factoryId = factory.factoryId;
+    this.goal = stringTrim(goal);
+    this.source = source;
+    this.researchContext = normalizedResearchContext;
+    this.proposalCount = proposals.length;
+    this.novelProposalCount = arrayFilter(proposals, ({ novel }) => novel).length;
+    this.repeatedProposalCount = arrayFilter(proposals, ({ repeated }) => repeated).length;
+    this.evaluated = false;
+    this.adopted = false;
+    this.deployed = false;
+    this.proposals = objectFreeze(arrayMap(
+      proposals,
+      (proposal) => objectFreeze({
+        ...proposal,
+        components: snapshotProcessData(proposal.components),
+        policy: objectFreeze({ ...proposal.policy })
+      })
+    ));
+    this.dataOnly = true;
+    this.authorityTransferred = false;
+    weakSetAdd(TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPORTS, this);
+    objectFreeze(this);
+  }
+}
+
+export function isTrustedHarnessFactoryArchitectureProposalReport(report) {
+  return typeof report === 'object'
+    && report !== null
+    && weakSetHas(TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPORTS, report)
+    && objectGetPrototypeOf(report)
+      === HarnessFactoryArchitectureProposalReport.prototype;
+}
+
+function factoryArchitectureProposalReportFromProcess({
+  factory,
+  ledger,
+  proposalReport,
+  resolvedCandidates
+}) {
+  if (
+    !isTrustedHarnessFactory(factory)
+    || !isTrustedEvidenceLedger(ledger)
+    || proposalReport?.dataOnly !== true
+    || !arrayIsArray(proposalReport?.proposals)
+    || !arrayIsArray(resolvedCandidates)
+    || resolvedCandidates.length !== proposalReport.proposals.length
+    || arraySome(
+      resolvedCandidates,
+      (candidate) => !isTrustedAgentArchitectureCandidate(candidate)
+    )
+  ) {
+    throw new TypeError(
+      'Harness Factory architecture proposal report requires trusted process evidence'
+    );
+  }
+  const historicalCounts = factoryArchitectureHistoricalFingerprintCounts(
+    ledger,
+    factory.factoryId
+  );
+  const batchFingerprints = [];
+  const proposals = arrayMap(
+    proposalReport.proposals,
+    (proposal, index) => {
+      const configuration = factoryArchitectureConfigurationFromCandidate(
+        resolvedCandidates[index]
+      );
+      const historicalMatchCount = arrayFind(
+        historicalCounts,
+        (entry) => entry.fingerprint === configuration.architectureFingerprint
+      )?.count ?? 0;
+      const batchDuplicate = arrayIncludes(
+        batchFingerprints,
+        configuration.architectureFingerprint
+      );
+      arrayPush(batchFingerprints, configuration.architectureFingerprint);
+      const novel = historicalMatchCount === 0 && !batchDuplicate;
+      return objectFreeze({
+        architectureFingerprint: configuration.architectureFingerprint,
+        authorityTransferred: false,
+        batchDuplicate,
+        components: configuration.components,
+        dataOnly: true,
+        historicalMatchCount,
+        id: proposal.id,
+        novel,
+        plannerCandidateId: configuration.plannerCandidateId,
+        policy: configuration.policy,
+        repeated: !novel,
+        status: novel
+          ? HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_STATUSES.NOVEL
+          : HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_STATUSES.REPEATED
+      });
+    }
+  );
+  return new HarnessFactoryArchitectureProposalReport({
+    factory,
+    goal: proposalReport.goal,
+    source: proposalReport.source,
+    researchContext: proposalReport.researchContext,
+    proposals,
+    token: FACTORY_TOKEN
+  });
+}
+
 function validHarnessFactoryArchitectureCoverageAttempt(attempt) {
   if (
     !isPlainObject(attempt)
@@ -8771,6 +9128,53 @@ export class HarnessFactory {
 
   manufacture(options = {}) {
     return manufactureFactory(this, options);
+  }
+
+  proposeArchitectures(options = {}) {
+    requireDataObject(
+      options,
+      'Harness Factory architecture proposal options',
+      ARCHITECTURE_PROPOSAL_OPTIONS_KEYS
+    );
+    if (!isTrustedHarnessFactory(this)) {
+      throw new TypeError('Harness Factory requires an exact trusted factory');
+    }
+    const {
+      goal,
+      plannerCandidates,
+      researchContext = null
+    } = options;
+    const normalizedPlannerCandidates = requireTrustedFactoryPlannerCandidates(
+      plannerCandidates
+    );
+    if (
+      researchContext !== null
+      && !isTrustedStructuredMemoryContext(researchContext)
+    ) {
+      throw new TypeError(
+        'Harness Factory architecture proposal researchContext requires a trusted structured memory context'
+      );
+    }
+    const historicalLedger = verifiedLedgerSnapshot(this.ledger);
+    const proposalRunner = this.discoveryRunner.proposalRunner;
+    const proposalReport = proposalRunner.propose({
+      goal,
+      plannerCandidateIds: arrayMap(
+        normalizedPlannerCandidates,
+        ({ id }) => id
+      ),
+      researchContext
+    });
+    const resolvedCandidates = proposalRunner.resolve({
+      report: proposalReport,
+      plannerCandidates: normalizedPlannerCandidates
+    });
+    return factoryArchitectureProposalReportFromProcess({
+      factory: this,
+      ledger: historicalLedger,
+      proposalReport,
+      resolvedCandidates
+    });
   }
 
   improve(options = {}) {
@@ -10070,6 +10474,7 @@ objectFreeze(HarnessFactoryBenchmarkFrontierValidationStabilityResearchExecution
 objectFreeze(HarnessFactoryValidationReport.prototype);
 objectFreeze(HarnessFactoryImprovementRejectionReport.prototype);
 objectFreeze(HarnessFactoryImprovementRejectionHistoryReport.prototype);
+objectFreeze(HarnessFactoryArchitectureProposalReport.prototype);
 objectFreeze(HarnessFactoryArchitectureCoverageReport.prototype);
 objectFreeze(HarnessFactoryReport.prototype);
 objectFreeze(HarnessFactory.prototype);

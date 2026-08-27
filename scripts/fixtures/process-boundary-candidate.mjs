@@ -277,6 +277,26 @@ export function proposeArchitectureDirect({ plannerCandidateIds }) {
   };
 }
 
+export function proposeArchitectureDuplicateBatch({ plannerCandidateIds }) {
+  const shared = {
+    plannerCandidateId: plannerCandidateIds[0],
+    policy: {
+      maxEpisodes: 2
+    },
+    components: {
+      planner: 'registered-process-planner',
+      policy: 'bounded-v1',
+      verifier: 'parent-core'
+    }
+  };
+  return {
+    proposals: [
+      { ...shared, id: 'process-architecture-duplicate-a' },
+      { ...shared, id: 'process-architecture-duplicate-b' }
+    ]
+  };
+}
+
 export function proposeArchitectureFromResearch({ plannerCandidateIds, researchContext }) {
   const firstResult = Array.isArray(researchContext?.results)
     ? researchContext.results[0]
