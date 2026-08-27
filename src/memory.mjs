@@ -67,6 +67,7 @@ export const MAX_STRUCTURED_MEMORY_KEYWORDS = 16;
 export const MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH = 64;
 export const MAX_STRUCTURED_MEMORY_DESCRIPTION_LENGTH = 256;
 export const MAX_STRUCTURED_MEMORY_QUERY_RESULTS = 32;
+export const MAX_STRUCTURED_MEMORY_QUERY_SOURCES = 8;
 export const STRUCTURED_MEMORY_CONTEXT_SOURCE = 'STRUCTURED_MEMORY';
 
 const VALID_EVIDENCE = setFromArray(objectValues(EVIDENCE_LEVELS));
@@ -95,6 +96,7 @@ const MEMORY_QUERY_KEYS = objectFreeze([
   'taskId',
   'strategyKey',
   'source',
+  'sources',
   'evidence',
   'surpriseBand',
   'minSurpriseNats',
@@ -225,6 +227,30 @@ function normalizeKeywords(value, field = 'Memory keywords') {
     if (!arrayIncludes(normalized, candidate)) {
       arrayPush(normalized, candidate);
     }
+  });
+  arraySort(normalized, (left, right) => stringLocaleCompare(left, right));
+  return objectFreeze(normalized);
+}
+
+function normalizeSources(value, field = 'Memory query sources') {
+  requireDenseDataArray(value, field, MAX_STRUCTURED_MEMORY_QUERY_SOURCES);
+  if (value.length === 0) {
+    throw new TypeError(`${field} must contain at least one source`);
+  }
+  const normalized = [];
+  arrayForEach(value, (source, index) => {
+    const candidate = requireNonEmptyString(
+      source,
+      `${field} entry ${index}`,
+      MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH
+    );
+    if (!setHas(VALID_MEMORY_SOURCES, candidate)) {
+      throw new TypeError(`${field} entry ${index} is invalid`);
+    }
+    if (arrayIncludes(normalized, candidate)) {
+      throw new TypeError(`${field} entries must be unique`);
+    }
+    arrayPush(normalized, candidate);
   });
   arraySort(normalized, (left, right) => stringLocaleCompare(left, right));
   return objectFreeze(normalized);
@@ -1692,6 +1718,14 @@ export class BoundedStructuredMemory {
     if (source !== null && !setHas(VALID_MEMORY_SOURCES, source)) {
       throw new TypeError('Structured memory query source is invalid');
     }
+    const sources = options.sources === undefined || options.sources === null
+      ? null
+      : normalizeSources(options.sources);
+    if (source !== null && sources !== null) {
+      throw new TypeError(
+        'Structured memory query cannot use source and sources together'
+      );
+    }
     const architectureId = options.architectureId === undefined || options.architectureId === null
       ? null
       : requireNonEmptyString(
@@ -1736,6 +1770,7 @@ export class BoundedStructuredMemory {
         (taskId !== null && entry.taskId !== taskId)
         || (strategyKey !== null && entry.strategyKey !== strategyKey)
         || (source !== null && entry.source !== source)
+        || (sources !== null && !arrayIncludes(sources, entry.source))
         || (architectureId !== null && entry.architectureId !== architectureId)
         || (evidence !== null && entry.evidence !== evidence)
         || (surpriseBand !== null && entry.surpriseBand !== surpriseBand)
@@ -1784,6 +1819,7 @@ export class BoundedStructuredMemory {
         taskId,
         strategyKey,
         source,
+        sources,
         evidence,
         surpriseBand,
         minSurpriseNats,

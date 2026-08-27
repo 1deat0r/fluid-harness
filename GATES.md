@@ -2443,3 +2443,23 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
   CHECK: node scripts/check-harness-factory-research-plan-provenance-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_RESEARCH_PLAN_PROVENANCE_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_RESEARCH_PLAN_PROVENANCE_BOUNDARY_OK missingRejected=true wrongKindRejected=true hashRejected=true emptyRejected=true ledgerUnchanged=true verified=true
+
+- [x] G489: structured memory can retrieve several selected evidence sources in one deterministic, frozen, data-only context
+  CHECK: node scripts/check-structured-memory-multi-source.mjs
+  EXPECT: FLUID_STRUCTURED_MEMORY_MULTI_SOURCE_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_STRUCTURED_MEMORY_MULTI_SOURCE_OK sources=AGENT_RUN,RESEARCH results=2 dataOnly=true historicalOnly=true
+
+- [x] G490: multi-source memory queries reject empty, duplicate, unknown, accessor-bearing, and conflicting source filters without changing the memory
+  CHECK: node scripts/check-structured-memory-multi-source-boundary.mjs
+  EXPECT: FLUID_STRUCTURED_MEMORY_MULTI_SOURCE_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_STRUCTURED_MEMORY_MULTI_SOURCE_BOUNDARY_OK emptyRejected=true duplicateRejected=true invalidRejected=true scalarRejected=true conflictRejected=true accessorRejected=true unchanged=true
+
+- [x] G491: a factory improvement can combine independent archived evidence sources for a fresh proposer while retaining fresh evaluation, replay, and strict-gain gates
+  CHECK: node scripts/check-harness-factory-multi-source-improvement.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_MULTI_SOURCE_IMPROVEMENT_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_MULTI_SOURCE_IMPROVEMENT_OK sources=ARCHITECTURE_DISCOVERY,HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION results=2 first=ADOPTED second=ADOPTED strict=true fresh=true authorityTransferred=false
+
+- [x] G492: factory multi-source improvement rejects unsupported, empty, duplicate, accessor-bearing, and authority-bearing memory filters before mutation
+  CHECK: node scripts/check-harness-factory-multi-source-improvement-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_MULTI_SOURCE_IMPROVEMENT_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_MULTI_SOURCE_IMPROVEMENT_BOUNDARY_OK emptyRejected=true duplicateRejected=true scalarRejected=true unsupportedRejected=true conflictRejected=true accessorRejected=true authorityRejected=true ledgerUnchanged=true author

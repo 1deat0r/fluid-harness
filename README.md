@@ -4,7 +4,7 @@
 ## Public status
 
 - Package version: 0.1.0
-- Acceptance ledger: 488/488 gates marked met in [GATES.md](GATES.md).
+- Acceptance ledger: 492/492 gates marked met in [GATES.md](GATES.md).
 - Scope: bounded architecture discovery, evaluation, archival, research, and improvement; no automatic deployment or artificial-superintelligence claim.
 - Generated detail: [docs/STATUS.md](docs/STATUS.md).
 
@@ -613,6 +613,8 @@ Execution receipts can be imported into structured memory under `MEMORY_SOURCES.
 Receipt persistence also checks provenance semantically: every receipt must reference at least one earlier ledger record through its exact `{kind, sequence, hash}` locator, and each referenced record must be an archive kind allowed for that result type. Missing, future, wrong-kind, or wrong-hash references are rejected even when a tampered payload has been resealed with a valid chain hash.
 
 The receipt-memory source is wired into the real factory improvement path as well: a later `improve()` call can query a successful receipt summary, pass only that historical context to the isolated proposer, and still require fresh candidate evaluation, independent replay, strict improvement, and a new archive before adoption.
+
+The memory index can also combine a bounded set of trusted sources in one read-only query: `memory.query({ sources: [...] })` returns the union of matching historical entries with a normalized, frozen source list. `factory.improve({ memoryQuery: { sources: [...] } })` can use that combined context so a fresh proposer sees, for example, both architecture-discovery outcomes and research-plan execution receipts. The context remains observed historical data only; fresh evaluation, replay, strict-gain, and adoption gates still decide whether a new generation is accepted. Empty, duplicate, unknown, accessor-bearing, conflicting, or authority-bearing filters are rejected before mutation.
 
 `factory.benchmark({ candidate, cases, levels })` is the factory’s bounded architecture benchmarker. It evaluates a fresh candidate at finite budget levels, independently replays each level with fresh search runners, rejects definition drift between levels, and returns summary metrics plus a compute/fitness Pareto frontier. The candidate, search reports, runners, and action evidence remain private; the benchmark does not adopt, deploy, or archive the candidate.
 

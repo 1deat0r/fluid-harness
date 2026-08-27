@@ -246,11 +246,35 @@ const IMPROVEMENT_QUERY_KEYS = objectFreeze([
   'taskId',
   'strategyKey',
   'source',
+  'sources',
   'evidence',
   'surpriseBand',
   'minSurpriseNats',
   'limit'
 ]);
+const HARNESS_FACTORY_IMPROVEMENT_MEMORY_SOURCES = objectFreeze([
+  'ARCHITECTURE_DISCOVERY',
+  'HARNESS_FACTORY_BENCHMARK_CAMPAIGN',
+  'HARNESS_FACTORY_BENCHMARK_VALIDATION',
+  'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION',
+  'HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY',
+  'HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION'
+]);
+
+function usesHarnessFactoryImprovementMemory(researchContext) {
+  const query = researchContext?.query;
+  return arrayIncludes(
+    HARNESS_FACTORY_IMPROVEMENT_MEMORY_SOURCES,
+    query?.source
+  ) || arrayIsArray(query?.sources)
+    && arraySome(
+      query.sources,
+      (source) => arrayIncludes(
+        HARNESS_FACTORY_IMPROVEMENT_MEMORY_SOURCES,
+        source
+      )
+    );
+}
 const FACTORY_FITNESS_RATE_KEYS = objectFreeze([
   'productionSuccessRate',
   'productionProvenRate',
@@ -7721,18 +7745,9 @@ export class HarnessFactoryReport {
     this.freshAdoption = discovery.adopted === true;
     this.proofStatus = discovery.adopted === true ? 'PROVEN' : 'NONE';
     this.researchContext = discovery.proposalReport.researchContext;
-    this.improvedFromArchive = this.researchContext?.query?.source
-      === MEMORY_SOURCES.ARCHITECTURE_DISCOVERY
-      || this.researchContext?.query?.source
-        === MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_CAMPAIGN
-      || this.researchContext?.query?.source
-        === MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_VALIDATION
-      || this.researchContext?.query?.source
-        === MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION
-      || this.researchContext?.query?.source
-        === MEMORY_SOURCES.HARNESS_FACTORY_BENCHMARK_FRONTIER_VALIDATION_STABILITY
-      || this.researchContext?.query?.source
-        === MEMORY_SOURCES.HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION;
+    this.improvedFromArchive = usesHarnessFactoryImprovementMemory(
+      this.researchContext
+    );
     this.retiredCandidateIds = retirement.candidateIds;
     this.retiredCandidateCount = retirement.count;
     this.archive = archive;
@@ -8159,6 +8174,10 @@ export class HarnessFactory {
       'Harness Factory improvement memoryQuery',
       IMPROVEMENT_QUERY_KEYS
     );
+    const requestedMemorySources = memoryQuery.sources === undefined
+      || memoryQuery.sources === null
+      ? null
+      : snapshotProcessData(memoryQuery.sources);
     if (
       memoryQuery.source !== undefined
       && memoryQuery.source !== MEMORY_SOURCES.ARCHITECTURE_DISCOVERY
@@ -8179,11 +8198,41 @@ export class HarnessFactory {
         + 'HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION source'
       );
     }
+    if (requestedMemorySources !== null) {
+      if (
+        !arrayIsArray(requestedMemorySources)
+        || requestedMemorySources.length === 0
+        || setSize(setFromArray(requestedMemorySources))
+          !== requestedMemorySources.length
+        || arraySome(
+          requestedMemorySources,
+          (source) => !arrayIncludes(
+            HARNESS_FACTORY_IMPROVEMENT_MEMORY_SOURCES,
+            source
+          )
+        )
+      ) {
+        throw new TypeError(
+          'Harness Factory improvement memoryQuery sources must contain unique supported sources'
+        );
+      }
+      if (memoryQuery.source !== undefined && memoryQuery.source !== null) {
+        throw new TypeError(
+          'Harness Factory improvement memoryQuery cannot use source and sources together'
+        );
+      }
+    }
     const normalizedMemoryQuery = {
       ...memoryQuery,
-      source: memoryQuery.source === undefined
-        ? MEMORY_SOURCES.ARCHITECTURE_DISCOVERY
-        : memoryQuery.source
+      ...(requestedMemorySources === null
+        ? {
+          source: memoryQuery.source === undefined
+            ? MEMORY_SOURCES.ARCHITECTURE_DISCOVERY
+            : memoryQuery.source
+        }
+        : {
+          sources: requestedMemorySources
+        })
     };
     const historicalLedger = verifiedLedgerSnapshot(this.ledger);
     const historicalFactoryHistory = factoryHistoryFromLedger(
