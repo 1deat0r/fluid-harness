@@ -9,7 +9,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 276.573431 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 325.106841 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -19,7 +19,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=544 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=548 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -44,7 +44,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.246},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.414},{"
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":6.004},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.658},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2645,3 +2645,23 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
   CHECK: node scripts/check-harness-factory-architecture-proposal-conversion-authority-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_AUTHORITY_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_AUTHORITY_BOUNDARY_OK sourceEvaluated=false sourceAdopted=false sourceDeployed=false sourceDataOnly=true forgedRejected=true accessorRejected=true bridgeRejected=true strictGainRequired
+
+- [x] G529: the Harness Factory research agenda surfaces archived proposal batches whose architectures were never evaluated, ranked below the existing factory targets
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-agenda.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_AGENDA_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_AGENDA_OK replayItems=2 priority=190 firstTarget=VALIDATE_UNSEEN_HOLDOUT bridge=ARCHIVED_PROPOSAL_REPLAY conversionStatus=UNTESTED measured=false ledgerEntries=3 verify=true
+
+- [x] G530: an exact archived-proposal replay plan item can be dispatched through the factory research plan receipt into fresh production, research, skeptic, replay, and adoption evidence
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-execution.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXECUTION_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXECUTION_OK bridge=ARCHIVED_PROPOSAL_REPLAY result=HARNESS_FACTORY_REPORT:ADOPTED resolved=true generation=1 citedBatch=1 receipts=2 conversion=REPLAYED ledgerEntries=6 verify=true
+
+- [x] G531: archived-proposal replay dispatch rejects forged, pending, foreign, missing, mismatched, stale, accessor-bearing, and unknown-option inputs without ledger mutation
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-execution-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXECUTION_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXECUTION_BOUNDARY_OK forged=true pending=true foreign=true missing=true targetMismatch=true unknownCandidate=true goalMismatch=true foreignItem=true accessor=true unknownOption=true stale=
+
+- [x] G532: the replay agenda, plan, and receipt stay advisory data-only evidence that cannot mark the source batch evaluated or replace fresh adoption and holdout validation
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-authority-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_AUTHORITY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_AUTHORITY_BOUNDARY_OK artifactKeys=0 measured=false advisoryOnlyRecommend=NO_HISTORY freshAdopted=ADOPTED freshDeployed=false sourceEvaluated=false sourceAdopted=false generations=1 postRec

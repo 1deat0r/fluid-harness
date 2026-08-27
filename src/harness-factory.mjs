@@ -138,10 +138,12 @@ export const HARNESS_FACTORY_RESEARCH_TARGETS = objectFreeze({
   INVESTIGATE_BENCHMARK_FRONTIER_STABILITY: 'INVESTIGATE_BENCHMARK_FRONTIER_STABILITY',
   INVESTIGATE_SKEPTIC_WEAKNESS: 'INVESTIGATE_SKEPTIC_WEAKNESS',
   RECOVER_FAILED_HOLDOUT: 'RECOVER_FAILED_HOLDOUT',
+  REPLAY_ARCHIVED_PROPOSALS: 'REPLAY_ARCHIVED_PROPOSALS',
   TEST_TRANSFER_GAP: 'TEST_TRANSFER_GAP',
   VALIDATE_UNSEEN_HOLDOUT: 'VALIDATE_UNSEEN_HOLDOUT'
 });
 export const HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES = objectFreeze({
+  ARCHIVED_PROPOSAL_REPLAY: 'ARCHIVED_PROPOSAL_REPLAY',
   BENCHMARK_FRONTIER_VALIDATION: 'BENCHMARK_FRONTIER_VALIDATION',
   BENCHMARK_VALIDATION: 'BENCHMARK_VALIDATION',
   FACTORY_RECOMMENDATION: 'FACTORY_RECOMMENDATION',
@@ -165,6 +167,7 @@ const HARNESS_FACTORY_RESEARCH_TARGET_VALUES = objectFreeze([
   HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_BENCHMARK_FRONTIER_STABILITY,
   HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_SKEPTIC_WEAKNESS,
   HARNESS_FACTORY_RESEARCH_TARGETS.RECOVER_FAILED_HOLDOUT,
+  HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS,
   HARNESS_FACTORY_RESEARCH_TARGETS.TEST_TRANSFER_GAP,
   HARNESS_FACTORY_RESEARCH_TARGETS.VALIDATE_UNSEEN_HOLDOUT
 ]);
@@ -272,6 +275,7 @@ const RESEARCH_PLAN_EXECUTION_OPTIONS_KEYS = objectFreeze([
   'maxMemoryEntries',
   'memoryQuery',
   'plannerCandidates',
+  'proposalReport',
   'points',
   'productionBudget',
   'researchBudget',
@@ -416,6 +420,23 @@ const BENCHMARK_CAMPAIGN_VALIDATION_OPTIONS_KEYS = objectFreeze([
   'holdoutProductionBudget',
   'holdoutResearchBudget',
   'holdoutSkepticBudget'
+]);
+const ARCHIVED_PROPOSAL_REPLAY_RESEARCH_OPTIONS_KEYS = objectFreeze([
+  'agentContext',
+  'agentGoal',
+  'agentReproduction',
+  'cases',
+  'goal',
+  'holdoutCases',
+  'holdoutProductionBudget',
+  'holdoutResearchBudget',
+  'holdoutSkepticBudget',
+  'plannerCandidates',
+  'productionBudget',
+  'proposalReport',
+  'researchBudget',
+  'skepticBudget',
+  'toolRegistry'
 ]);
 const BENCHMARK_VALIDATION_RESEARCH_OPTIONS_KEYS = objectFreeze([
   'campaign',
@@ -1400,7 +1421,8 @@ const HARNESS_FACTORY_RESEARCH_TARGET_PRIORITIES = objectFreeze({
   [HARNESS_FACTORY_RESEARCH_TARGETS.VALIDATE_UNSEEN_HOLDOUT]: 300,
   [HARNESS_FACTORY_RESEARCH_TARGETS.INVESTIGATE_SKEPTIC_WEAKNESS]: 220,
   [HARNESS_FACTORY_RESEARCH_TARGETS.TEST_TRANSFER_GAP]: 210,
-  [HARNESS_FACTORY_RESEARCH_TARGETS.IMPROVE_LATEST_GENERATION]: 200
+  [HARNESS_FACTORY_RESEARCH_TARGETS.IMPROVE_LATEST_GENERATION]: 200,
+  [HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS]: 190
 });
 
 const HARNESS_FACTORY_RESEARCH_PLAN_BLUEPRINTS = objectFreeze({
@@ -1511,6 +1533,22 @@ const HARNESS_FACTORY_RESEARCH_PLAN_BLUEPRINTS = objectFreeze({
       'fresh complete independent holdout evidence',
       'a hash-chained validation archive',
       'an updated advisory recommendation without creating a generation'
+    ])
+  }),
+  [HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS]: objectFreeze({
+    bridge: HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.ARCHIVED_PROPOSAL_REPLAY,
+    executionMethod: 'factory.executeArchivedProposalReplayResearch',
+    requiredInputs: objectFreeze([
+      'the exact current replay agenda item',
+      'the exact archived proposal batch named by that item',
+      'fresh planner candidates and policies',
+      'the benchmark cases plus an optional disjoint holdout suite',
+      'production, research, and skeptic budgets'
+    ]),
+    expectedEvidence: objectFreeze([
+      'fresh production, research, and skeptic evaluation of the archived proposals',
+      'an independent replay and adoption decision',
+      'a new archived generation that cites the source proposal batch'
     ])
   }),
   [HARNESS_FACTORY_RESEARCH_TARGETS.IMPROVE_LATEST_GENERATION]: objectFreeze({
@@ -2531,6 +2569,151 @@ function isValidHarnessFactoryBenchmarkFrontierValidationStabilityResearchAgenda
     );
 }
 
+const HARNESS_FACTORY_PROPOSAL_REPLAY_BENCHMARK_KEYS = objectFreeze([
+  'convertedFingerprintCount',
+  'conversionStatus',
+  'distinctFingerprintCount',
+  'novelProposalCount',
+  'proposalArchive',
+  'proposalCount',
+  'repeatedProposalCount',
+  'untestedFingerprintCount'
+]);
+const HARNESS_FACTORY_PROPOSAL_REPLAY_FITNESS_KEYS = objectFreeze([
+  'archivedProposalCount',
+  'evaluatedArchitectureCount',
+  'measured',
+  'replayed',
+  'untestedArchitectureCount'
+]);
+
+function validHarnessFactoryProposalReplayCounts(value) {
+  return isSafeInteger(value) && value >= 0;
+}
+
+function factoryProposalReplayResearchAgendaItem({ factory, batch, reason }) {
+  if (!isTrustedHarnessFactory(factory)) {
+    throw new TypeError('Harness Factory proposal replay agenda requires a trusted factory');
+  }
+  if (
+    !isPlainObject(batch)
+    || !isValidArchiveLocator(batch.archive)
+    || batch.archive.kind !== 'harness-factory-architecture-proposals'
+    || !validHarnessFactoryProposalReplayCounts(batch.proposalCount)
+    || batch.proposalCount <= 0
+    || !validHarnessFactoryProposalReplayCounts(batch.novelProposalCount)
+    || !validHarnessFactoryProposalReplayCounts(batch.repeatedProposalCount)
+    || batch.novelProposalCount + batch.repeatedProposalCount !== batch.proposalCount
+    || !validHarnessFactoryProposalReplayCounts(batch.distinctFingerprintCount)
+    || batch.distinctFingerprintCount <= 0
+    || !validHarnessFactoryProposalReplayCounts(batch.convertedFingerprintCount)
+    || !validHarnessFactoryProposalReplayCounts(batch.untestedFingerprintCount)
+    || batch.untestedFingerprintCount
+      !== batch.distinctFingerprintCount - batch.convertedFingerprintCount
+    || batch.replayed !== false
+    || batch.untestedFingerprintCount <= 0
+    || batch.status !== HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.UNTESTED
+      && batch.status
+        !== HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.CONVERTED
+  ) {
+    throw new TypeError(
+      'Harness Factory proposal replay agenda requires an untested archived proposal batch'
+    );
+  }
+  const archive = archiveLocator(batch.archive);
+  return objectFreeze({
+    id: `harness-factory-research:${HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS}:${archive.sequence}`,
+    factoryId: factory.factoryId,
+    target: HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS,
+    priority: HARNESS_FACTORY_RESEARCH_TARGET_PRIORITIES[
+      HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS
+    ],
+    generation: null,
+    archive,
+    validationArchive: null,
+    benchmark: objectFreeze({
+      convertedFingerprintCount: batch.convertedFingerprintCount,
+      conversionStatus: batch.status,
+      distinctFingerprintCount: batch.distinctFingerprintCount,
+      novelProposalCount: batch.novelProposalCount,
+      proposalArchive: archive,
+      proposalCount: batch.proposalCount,
+      repeatedProposalCount: batch.repeatedProposalCount,
+      untestedFingerprintCount: batch.untestedFingerprintCount
+    }),
+    fitness: objectFreeze({
+      archivedProposalCount: batch.proposalCount,
+      evaluatedArchitectureCount: 0,
+      measured: false,
+      replayed: false,
+      untestedArchitectureCount: batch.untestedFingerprintCount
+    }),
+    holdoutStatus: HARNESS_FACTORY_HOLDOUT_STATUSES.NOT_RUN,
+    reason: requireNonEmptyString(
+      reason,
+      'Harness Factory proposal replay research agenda reason'
+    ),
+    dataOnly: true,
+    authorityTransferred: false
+  });
+}
+
+function isValidHarnessFactoryProposalReplayResearchAgendaItem(item, factory) {
+  const archive = item?.archive;
+  const benchmark = item?.benchmark;
+  const fitness = item?.fitness;
+  return isPlainObject(item)
+    && item.target === HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS
+    && item.priority === HARNESS_FACTORY_RESEARCH_TARGET_PRIORITIES[
+      HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS
+    ]
+    && item.factoryId === factory.factoryId
+    && item.id
+      === `harness-factory-research:${HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS}:${archive?.sequence}`
+    && item.generation === null
+    && isValidArchiveLocator(archive)
+    && archive.kind === 'harness-factory-architecture-proposals'
+    && item.validationArchive === null
+    && isPlainObject(benchmark)
+    && jsonStringify(reflectOwnKeys(benchmark))
+      === jsonStringify(HARNESS_FACTORY_PROPOSAL_REPLAY_BENCHMARK_KEYS)
+    && sameArchiveLocator(benchmark.proposalArchive, archive)
+    && (
+      benchmark.conversionStatus
+        === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.UNTESTED
+      || benchmark.conversionStatus
+        === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.CONVERTED
+    )
+    && validHarnessFactoryProposalReplayCounts(benchmark.proposalCount)
+    && benchmark.proposalCount > 0
+    && validHarnessFactoryProposalReplayCounts(benchmark.novelProposalCount)
+    && validHarnessFactoryProposalReplayCounts(benchmark.repeatedProposalCount)
+    && benchmark.novelProposalCount + benchmark.repeatedProposalCount
+      === benchmark.proposalCount
+    && validHarnessFactoryProposalReplayCounts(benchmark.distinctFingerprintCount)
+    && benchmark.distinctFingerprintCount > 0
+    && benchmark.distinctFingerprintCount <= benchmark.proposalCount
+    && validHarnessFactoryProposalReplayCounts(benchmark.convertedFingerprintCount)
+    && benchmark.convertedFingerprintCount <= benchmark.distinctFingerprintCount
+    && validHarnessFactoryProposalReplayCounts(benchmark.untestedFingerprintCount)
+    && benchmark.untestedFingerprintCount > 0
+    && benchmark.untestedFingerprintCount
+      === benchmark.distinctFingerprintCount - benchmark.convertedFingerprintCount
+    && isPlainObject(fitness)
+    && jsonStringify(reflectOwnKeys(fitness))
+      === jsonStringify(HARNESS_FACTORY_PROPOSAL_REPLAY_FITNESS_KEYS)
+    && fitness.measured === false
+    && fitness.replayed === false
+    && fitness.evaluatedArchitectureCount === 0
+    && fitness.archivedProposalCount === benchmark.proposalCount
+    && fitness.untestedArchitectureCount === benchmark.untestedFingerprintCount
+    && item.holdoutStatus === HARNESS_FACTORY_HOLDOUT_STATUSES.NOT_RUN
+    && typeof item.reason === 'string'
+    && stringTrim(item.reason) !== ''
+    && item.dataOnly === true
+    && item.authorityTransferred === false;
+}
+
 function factoryResearchAgendaFromHistory({
   factory,
   history,
@@ -2538,6 +2721,7 @@ function factoryResearchAgendaFromHistory({
   benchmarkValidations = [],
   benchmarkFrontierValidationScorecard = null,
   benchmarkFrontierValidationStability = null,
+  proposalConversion = null,
   maxItems
 }) {
   if (!isTrustedHarnessFactory(factory)) {
@@ -2578,6 +2762,17 @@ function factoryResearchAgendaFromHistory({
   ) {
     throw new TypeError(
       'Harness Factory research agenda requires verified frontier validation stability'
+    );
+  }
+  if (
+    proposalConversion !== null
+    && (
+      !isTrustedHarnessFactoryArchitectureProposalConversionReport(proposalConversion)
+      || proposalConversion.factoryId !== factory.factoryId
+    )
+  ) {
+    throw new TypeError(
+      'Harness Factory research agenda requires verified proposal conversion evidence'
     );
   }
   if (!isSafeInteger(maxItems) || maxItems <= 0) {
@@ -2723,6 +2918,22 @@ function factoryResearchAgendaFromHistory({
         'the latest generation passed holdout and is ready for a strict improvement experiment'
       );
     }
+  }
+
+  if (proposalConversion !== null) {
+    arrayForEach(proposalConversion.batches, (batch) => {
+      if (batch.replayed !== false || batch.untestedFingerprintCount <= 0) {
+        return;
+      }
+      arrayPush(
+        proposed,
+        factoryProposalReplayResearchAgendaItem({
+          factory,
+          batch,
+          reason: 'an archived proposal batch still holds architectures that were never evaluated'
+        })
+      );
+    });
   }
 
   const ranked = arraySort(
@@ -5622,6 +5833,9 @@ export class HarnessFactoryResearchAgendaReport {
                     item,
                     factory
                   )
+                : item.target
+                  === HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS
+                  ? !isValidHarnessFactoryProposalReplayResearchAgendaItem(item, factory)
                 : !isSafeInteger(item.generation)
                   || item.generation <= 0
                   || !isPlainObject(item.archive)
@@ -5747,6 +5961,7 @@ export class HarnessFactoryResearchPlanReport {
           || stringTrim(plan.holdoutStatus) === ''
           || !arrayIncludes(
             [
+              HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.ARCHIVED_PROPOSAL_REPLAY,
               HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.BENCHMARK_FRONTIER_VALIDATION,
               HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.BENCHMARK_VALIDATION,
               HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.FACTORY_RECOMMENDATION,
@@ -9361,6 +9576,7 @@ export class HarnessFactoryResearchPlanExecutionHistoryReport {
           || execution.planId !== `harness-factory-research-plan:${execution.agendaItemId}`
           || !arrayIncludes(
             [
+              HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.ARCHIVED_PROPOSAL_REPLAY,
               HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.BENCHMARK_FRONTIER_VALIDATION,
               HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.BENCHMARK_VALIDATION,
               HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.FACTORY_RECOMMENDATION,
@@ -10402,6 +10618,10 @@ export class HarnessFactory {
       benchmarkValidations,
       benchmarkFrontierValidationScorecard,
       benchmarkFrontierValidationStability,
+      proposalConversion: factoryArchitectureProposalConversionReportFromLedger(
+        historicalLedger,
+        this
+      ),
       maxItems
     });
   }
@@ -10528,9 +10748,112 @@ export class HarnessFactory {
     if (plan.bridge === HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.FRONTIER_STABILITY) {
       return this.executeBenchmarkFrontierValidationStabilityResearch(target, options);
     }
+    if (
+      plan.bridge === HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.ARCHIVED_PROPOSAL_REPLAY
+    ) {
+      return this.executeArchivedProposalReplayResearch(target, options);
+    }
     throw new Error(
       'Harness Factory research plan requires an operator-supplied experiment for this target'
     );
+  }
+
+  executeArchivedProposalReplayResearch(target, options = {}) {
+    requireDataObject(
+      options,
+      'Harness Factory archived proposal replay research execution options',
+      ARCHIVED_PROPOSAL_REPLAY_RESEARCH_OPTIONS_KEYS
+    );
+    if (!isTrustedHarnessFactory(this)) {
+      throw new TypeError('Harness Factory requires an exact trusted factory');
+    }
+    if (!isTrustedHarnessFactoryResearchAgendaItem(target, this)) {
+      throw new TypeError(
+        'Harness Factory archived proposal replay research requires an exact agenda item from this factory'
+      );
+    }
+    const currentAgenda = this.researchAgenda();
+    const currentTarget = arrayFind(
+      currentAgenda.items,
+      ({ id }) => id === target.id
+    );
+    if (
+      currentTarget === undefined
+      || jsonStringify(currentTarget) !== jsonStringify(target)
+    ) {
+      throw new Error('Harness Factory archived proposal replay research target is stale');
+    }
+    if (
+      target.target !== HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS
+    ) {
+      throw new Error(
+        'Harness Factory archived proposal replay research target is not executable'
+      );
+    }
+    const { proposalReport } = options;
+    const manufactureOptions = {
+      plannerCandidates: options.plannerCandidates,
+      cases: options.cases,
+      productionBudget: options.productionBudget,
+      researchBudget: options.researchBudget,
+      skepticBudget: options.skepticBudget
+    };
+    if (options.goal !== undefined) {
+      manufactureOptions.goal = options.goal;
+    }
+    if (options.holdoutCases !== undefined) {
+      manufactureOptions.holdoutCases = options.holdoutCases;
+    }
+    if (options.holdoutProductionBudget !== undefined) {
+      manufactureOptions.holdoutProductionBudget = options.holdoutProductionBudget;
+    }
+    if (options.holdoutResearchBudget !== undefined) {
+      manufactureOptions.holdoutResearchBudget = options.holdoutResearchBudget;
+    }
+    if (options.holdoutSkepticBudget !== undefined) {
+      manufactureOptions.holdoutSkepticBudget = options.holdoutSkepticBudget;
+    }
+    if (options.agentGoal !== undefined) {
+      manufactureOptions.agentGoal = options.agentGoal;
+    }
+    if (options.agentContext !== undefined) {
+      manufactureOptions.agentContext = options.agentContext;
+    }
+    if (options.agentReproduction !== undefined) {
+      manufactureOptions.agentReproduction = options.agentReproduction;
+    }
+    if (options.toolRegistry !== undefined) {
+      manufactureOptions.toolRegistry = options.toolRegistry;
+    }
+    if (
+      !isTrustedHarnessFactoryArchitectureProposalReport(proposalReport)
+      || weakMapGet(
+        TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_FACTORIES,
+        proposalReport
+      ) !== this
+      || proposalReport.archived !== true
+      || proposalReport.archive === null
+    ) {
+      throw new TypeError(
+        'Harness Factory archived proposal replay research requires an exact archived proposal report from this factory'
+      );
+    }
+    if (!sameArchiveLocator(proposalReport.archive, target.archive)) {
+      throw new Error(
+        'Harness Factory archived proposal replay research proposal batch does not match the target'
+      );
+    }
+    const batch = target.benchmark;
+    if (
+      proposalReport.proposalCount !== batch.proposalCount
+      || proposalReport.novelProposalCount !== batch.novelProposalCount
+      || proposalReport.repeatedProposalCount !== batch.repeatedProposalCount
+    ) {
+      throw new Error(
+        'Harness Factory archived proposal replay research batch evidence is inconsistent'
+      );
+    }
+    return this.manufactureFromArchivedProposals(proposalReport, manufactureOptions);
   }
 
   executeBenchmarkValidationResearch(target, options = {}) {
