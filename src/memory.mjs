@@ -17,6 +17,7 @@ import {
   arrayMap,
   arrayPush,
   arraySlice,
+  arraySome,
   arraySort,
   isFiniteNumber,
   isFrozenObject,
@@ -56,6 +57,7 @@ export const MEMORY_SOURCES = objectFreeze({
   HARNESS_FACTORY_IMPROVEMENT_REJECTION: 'HARNESS_FACTORY_IMPROVEMENT_REJECTION',
   HARNESS_FACTORY_ARCHITECTURE_COVERAGE: 'HARNESS_FACTORY_ARCHITECTURE_COVERAGE',
   HARNESS_FACTORY_ARCHITECTURE_PROPOSAL: 'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL',
+  HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION: 'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION',
   COORDINATION: 'COORDINATION',
   DISTRIBUTION_SHIFT: 'DISTRIBUTION_SHIFT',
   ENSEMBLE: 'ENSEMBLE',
@@ -1075,6 +1077,190 @@ function harnessFactoryArchitectureProposalMemoryEntries(
   });
 }
 
+function harnessFactoryArchitectureProposalConversionMemoryEntries(ledger, prefix) {
+  const proposalBatches = ledger.restoreHarnessFactoryArchitectureProposals();
+  const proposalRecords = ledgerRecordsOfKind(
+    ledger,
+    'harness-factory-architecture-proposals'
+  );
+  const discoveries = ledger.restoreArchitectureDiscoveries();
+  const discoveryRecords = ledgerRecordsOfKind(
+    ledger,
+    'architecture-discovery'
+  );
+  const improvementRejections = ledger.restoreHarnessFactoryImprovementRejections();
+  const groups = [];
+  const findGroup = (factoryId) => {
+    let group = arrayFind(
+      groups,
+      (candidate) => candidate.factoryId === factoryId
+    );
+    if (group === undefined) {
+      group = {
+        archived: [],
+        attempts: [],
+        batchCount: 0,
+        factoryId,
+        latestRecord: null,
+        proposalCount: 0,
+        replayedBatchCount: 0,
+        replays: [],
+        untestedBatchCount: 0
+      };
+      arrayPush(groups, group);
+    }
+    return group;
+  };
+  arrayForEach(discoveries, (discovery, index) => {
+    const record = discoveryRecords[index];
+    const factoryId = discovery.factory?.factoryId ?? null;
+    if (factoryId === null) {
+      return;
+    }
+    if (record === undefined) {
+      throw new Error(
+        'Structured memory proposal conversion discovery order is inconsistent'
+      );
+    }
+    const group = findGroup(factoryId);
+    if (typeof discovery.winnerArchitectureFingerprint === 'string') {
+      arrayPush(group.attempts, {
+        fingerprint: discovery.winnerArchitectureFingerprint,
+        sequence: record.sequence
+      });
+    }
+    const replayArchive = discovery.factory?.proposalArchive ?? null;
+    if (replayArchive !== null) {
+      arrayPush(group.replays, {
+        hash: replayArchive.hash,
+        sequence: replayArchive.sequence
+      });
+    }
+  });
+  arrayForEach(improvementRejections, (rejection) => {
+    const fingerprint = rejection.candidate?.architectureFingerprint;
+    const sequence = rejection.archive?.sequence ?? null;
+    if (
+      typeof fingerprint !== 'string'
+      || !isSafeInteger(sequence)
+    ) {
+      return;
+    }
+    arrayPush(findGroup(rejection.factoryId).attempts, {
+      fingerprint,
+      sequence
+    });
+  });
+  arrayForEach(proposalBatches, (batch, batchIndex) => {
+    const record = proposalRecords[batchIndex];
+    if (
+      record === undefined
+      || record.sequence !== batch.archive.sequence
+      || record.hash !== batch.archive.hash
+    ) {
+      throw new Error(
+        'Structured memory proposal conversion batch order is inconsistent'
+      );
+    }
+    const group = findGroup(batch.factoryId);
+    group.batchCount += 1;
+    group.proposalCount += batch.proposalCount;
+    if (group.latestRecord === null || record.sequence > group.latestRecord.sequence) {
+      group.latestRecord = record;
+    }
+    const distinct = [];
+    arrayForEach(batch.proposals, (proposal) => {
+      const fingerprint = proposal.architectureFingerprint;
+      if (typeof fingerprint !== 'string' || arrayIncludes(distinct, fingerprint)) {
+        return;
+      }
+      arrayPush(distinct, fingerprint);
+      const existing = arrayFind(
+        group.archived,
+        (entry) => entry.fingerprint === fingerprint
+      );
+      if (existing === undefined) {
+        arrayPush(group.archived, {
+          firstArchiveSequence: batch.archive.sequence,
+          fingerprint
+        });
+      } else if (batch.archive.sequence < existing.firstArchiveSequence) {
+        existing.firstArchiveSequence = batch.archive.sequence;
+      }
+    });
+    const replayed = arraySome(
+      group.replays,
+      (locator) => locator.sequence === batch.archive.sequence
+        && locator.hash === batch.archive.hash
+    );
+    const converted = arrayFilter(
+      distinct,
+      (fingerprint) => arraySome(
+        group.attempts,
+        (attempt) => attempt.fingerprint === fingerprint
+          && attempt.sequence > batch.archive.sequence
+      )
+    ).length;
+    if (replayed) {
+      group.replayedBatchCount += 1;
+    }
+    if (replayed === false && converted === 0) {
+      group.untestedBatchCount += 1;
+    }
+  });
+  const archivedGroups = arrayFilter(
+    groups,
+    (group) => group.batchCount > 0 && group.latestRecord !== null
+  );
+  return arrayMap(archivedGroups, (group, index) => {
+    const convertedArchitectures = arrayFilter(
+      group.archived,
+      (entry) => arraySome(
+        group.attempts,
+        (attempt) => attempt.fingerprint === entry.fingerprint
+          && attempt.sequence > entry.firstArchiveSequence
+      )
+    ).length;
+    const keywords = [
+      'harness-factory-proposal-conversion',
+      `archived-batches-${group.batchCount}`,
+      `archived-proposals-${group.proposalCount}`,
+      `archived-architectures-${group.archived.length}`,
+      `converted-architectures-${convertedArchitectures}`,
+      `untested-architectures-${group.archived.length - convertedArchitectures}`,
+      `replayed-batches-${group.replayedBatchCount}`,
+      `untested-batches-${group.untestedBatchCount}`
+    ];
+    const addKeyword = (keyword) => {
+      if (
+        typeof keyword === 'string'
+        && keyword.length <= MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH
+        && keywords.length < MAX_STRUCTURED_MEMORY_KEYWORDS
+        && !arrayIncludes(keywords, keyword)
+      ) {
+        arrayPush(keywords, keyword);
+      }
+    };
+    addKeyword(`factory-${group.factoryId}`);
+    return new StructuredMemoryEntry({
+      id: `${prefix}:harness-factory-proposal-conversion:${index}`,
+      taskId: isSafeInteger(group.latestRecord?.sequence)
+        ? `harness-factory-proposal-conversion:${group.latestRecord.sequence}`
+        : `harness-factory-proposal-conversion:${index}`,
+      description: `Historical Harness Factory proposal conversion across ${group.batchCount} archived batches`,
+      strategyKey: 'harness-factory-proposal-conversion',
+      evidence: EVIDENCE_LEVELS.OBSERVED,
+      surpriseBand: SURPRISE_BANDS.LOW,
+      surpriseNats: 0,
+      predictionError: false,
+      actionNumber: null,
+      source: MEMORY_SOURCES.HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION,
+      keywords,
+      provenance: provenanceForLedgerRecord(group.latestRecord)
+    });
+  });
+}
+
 function harnessFactoryArchitectureCoverageMemoryEntries(ledger, prefix) {
   const discoveries = ledger.restoreArchitectureDiscoveries();
   const discoveryRecords = ledgerRecordsOfKind(ledger, 'architecture-discovery');
@@ -1739,6 +1925,8 @@ export class BoundedStructuredMemory {
     );
     const architectureCoverageMemoryEntries =
       harnessFactoryArchitectureCoverageMemoryEntries(ledger, prefix);
+    const proposalConversionMemoryEntries =
+      harnessFactoryArchitectureProposalConversionMemoryEntries(ledger, prefix);
     const benchmarkFrontierValidationMemoryEntries = [];
     arrayForEach(benchmarkCampaigns, (campaign, campaignIndex) => {
       const relatedValidations = arrayFilter(
@@ -1838,6 +2026,7 @@ export class BoundedStructuredMemory {
       + improvementRejectionMemoryEntries.length
       + architectureProposalMemoryEntries.length
       + architectureCoverageMemoryEntries.length
+      + proposalConversionMemoryEntries.length
       + benchmarkFrontierValidationMemoryEntries.length
       + benchmarkFrontierValidationStabilityMemoryEntries.length
       + coordinations.length
@@ -1911,6 +2100,9 @@ export class BoundedStructuredMemory {
       arrayPush(entries, entry);
     });
     arrayForEach(architectureCoverageMemoryEntries, (entry) => {
+      arrayPush(entries, entry);
+    });
+    arrayForEach(proposalConversionMemoryEntries, (entry) => {
       arrayPush(entries, entry);
     });
     arrayForEach(benchmarkFrontierValidationMemoryEntries, (entry) => {

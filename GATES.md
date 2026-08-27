@@ -4,10 +4,12 @@ OWNS: package.json, README.md, GATES.md, .gitignore, src/**, test/**, scripts/**
 
 Scope: provide a runnable Node.js kernel that selects a task representation, executes and verifies deterministic graph, constraint, finite program-synthesis, array, bounded database-query, finite theorem, finite Bayesian posterior, finite-state simulation, finite optimization, and bounded search-tree tasks, routes opt-in natural-language tasks through an observed-only process-isolated model provider, imports trusted agent-run history or verified ledger-restored agent-run, architecture-discovery, coordination, supervised-session, pending-research-question, and completed-research-outcome summaries into a bounded structured-memory view with deterministic data-only retrieval, passes selected memory summaries to a process-isolated planner as frozen read-only context without transferring authority, composes that history/planner/context path through a fresh memory-aware bounded agent whose ledger factory can restore world-model context and policy while returning only summary receipts, can execute several independently constructed fresh memory-aware agents through a bounded summary-only proof-quorum ensemble with parent-indexed read-only planner context, can repeat those ensembles over finite parent-mediated rounds with fresh ledger-derived agents and data-only peer summaries, preserves partial persistence and explicit `NOT_PROVEN` status when quorum fails, can archive and restore those coordination transcripts as hash-chained data-only summaries, can archive standalone discovery proposals, candidate fingerprints, per-mode/per-case outcomes, replay reasons, and adoption decisions as a separate hash-chained data-only summary, and can compose finite discovery with that fresh summary-only coordination into a supervised session report, can measure fresh memory-aware sessions across finite agent-count and round levels with persistence/quorum metrics and a data-only Pareto frontier, lets that wrapper resolve one handoff or a finite rank-ordered research batch without exposing trusted schedule/search/action artifacts, lets it append a fresh run through a hash-verified summary-only ledger receipt for the next fresh agent, and admits only independently promoted fresh planners through a separate evolution boundary, schedules pending research as frozen data-only handoffs and lets a bounded runner resolve exact selected tasks or a finite rank-ordered batch with fresh proof, evaluates research and skeptic results, measures bounded execution across compute budgets, learns strategy profiles from evidence-aware surprise signals, protects execution with an auditable constitutional core and input sandbox envelope, searches isolated representation candidates, adopts only promoted routing policies, exposes the full cognitive cycle, and gates mutation privileges on reproducible improvement.
 
+EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execution context; `path` is the 12-hex sha256 prefix of the `PATH` the check ran under plus its colon-split entry count; `output` is the last two stdout lines joined with ` | ` and truncated to 240 characters. Every recorded run in this ledger used PATH fingerprint `815fc308d6fc/35 entries`.
+
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 243.751091 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 276.573431 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -17,7 +19,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=540 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=544 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -42,7 +44,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":4.966},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.291},{"
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.246},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.414},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2623,3 +2625,23 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
   CHECK: node scripts/check-harness-factory-archived-proposal-authority-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_ARCHIVED_PROPOSAL_AUTHORITY_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHIVED_PROPOSAL_AUTHORITY_BOUNDARY_OK sourceEvaluated=false sourceAdopted=false sourceDataOnly=true sourceAuthorityTransferred=false freshAdopted=true freshDeployed=false ledgerEntries=2 verify=true
+
+- [x] G525: the Harness Factory can report how much archived proposal exploration was later evaluated, derived only from verified archives
+  CHECK: node scripts/check-harness-factory-architecture-proposal-conversion.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_OK batches=2 proposals=2 archivedArchitectures=1 convertedArchitectures=1 rate=1 replayedBatches=1 convertedBatches=1 untestedBatches=0 statuses=CONVERTED,REPLAYED ledgerEntries=4 verif
+
+- [x] G526: the proposal conversion view rejects forged, proxied, accessor-bearing, sibling-factory, and tampered-archive inputs and stays bounded when the archive overflows
+  CHECK: node scripts/check-harness-factory-architecture-proposal-conversion-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_BOUNDARY_OK forged=false prototypeRejected=false proxyRejected=true accessorRejected=true frozen=true tamperedRejected=true siblingExcluded=true considered=10 returned=8 truncated=true 
+
+- [x] G527: proposal conversion is retrievable as an observed-only structured-memory source and can inform a fresh process-isolated proposer without restoring artifacts
+  CHECK: node scripts/check-harness-factory-architecture-proposal-conversion-memory.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_MEMORY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_MEMORY_OK conversionMatches=1 combinedMatches=4 sources=HARNESS_FACTORY_ARCHITECTURE_COVERAGE,HARNESS_FACTORY_ARCHITECTURE_PROPOSAL,HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION batc
+
+- [x] G528: proposal conversion counts stay advisory and cannot mark the source archive evaluated, pass as replay input, or replace a measured strict gain
+  CHECK: node scripts/check-harness-factory-architecture-proposal-conversion-authority-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_AUTHORITY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_AUTHORITY_BOUNDARY_OK sourceEvaluated=false sourceAdopted=false sourceDeployed=false sourceDataOnly=true forgedRejected=true accessorRejected=true bridgeRejected=true strictGainRequired
