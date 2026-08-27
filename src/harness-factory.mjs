@@ -195,6 +195,8 @@ const MANUFACTURE_OPTIONS_KEYS = objectFreeze([
 const ARCHITECTURE_PROPOSAL_OPTIONS_KEYS = objectFreeze([
   'goal',
   'plannerCandidates',
+  'memoryQuery',
+  'maxMemoryEntries',
   'researchContext'
 ]);
 const RESEARCH_PLAN_OPTIONS_KEYS = objectFreeze(['maxItems']);
@@ -299,6 +301,66 @@ function usesHarnessFactoryImprovementMemory(researchContext) {
         source
       )
     );
+}
+
+function normalizedHarnessFactoryProposalMemoryQuery(memoryQuery) {
+  requireDataObject(
+    memoryQuery,
+    'Harness Factory architecture proposal memoryQuery',
+    IMPROVEMENT_QUERY_KEYS
+  );
+  const requestedMemorySources = memoryQuery.sources === undefined
+    || memoryQuery.sources === null
+    ? null
+    : snapshotProcessData(memoryQuery.sources);
+  if (
+    memoryQuery.source !== undefined
+    && memoryQuery.source !== null
+    && !arrayIncludes(
+      HARNESS_FACTORY_IMPROVEMENT_MEMORY_SOURCES,
+      memoryQuery.source
+    )
+  ) {
+    throw new TypeError(
+      'Harness Factory architecture proposal memoryQuery source is unsupported'
+    );
+  }
+  if (requestedMemorySources !== null) {
+    if (
+      !arrayIsArray(requestedMemorySources)
+      || requestedMemorySources.length === 0
+      || setSize(setFromArray(requestedMemorySources))
+        !== requestedMemorySources.length
+      || arraySome(
+        requestedMemorySources,
+        (source) => !arrayIncludes(
+          HARNESS_FACTORY_IMPROVEMENT_MEMORY_SOURCES,
+          source
+        )
+      )
+    ) {
+      throw new TypeError(
+        'Harness Factory architecture proposal memoryQuery sources must contain unique supported sources'
+      );
+    }
+    if (memoryQuery.source !== undefined && memoryQuery.source !== null) {
+      throw new TypeError(
+        'Harness Factory architecture proposal memoryQuery cannot use source and sources together'
+      );
+    }
+  }
+  return {
+    ...memoryQuery,
+    ...(requestedMemorySources === null
+      ? {
+        source: memoryQuery.source === undefined
+          ? MEMORY_SOURCES.ARCHITECTURE_DISCOVERY
+          : memoryQuery.source
+      }
+      : {
+        sources: requestedMemorySources
+      })
+  };
 }
 const FACTORY_FITNESS_RATE_KEYS = objectFreeze([
   'productionSuccessRate',
@@ -9142,6 +9204,8 @@ export class HarnessFactory {
     const {
       goal,
       plannerCandidates,
+      memoryQuery = null,
+      maxMemoryEntries = MAX_STRUCTURED_MEMORY_ENTRIES,
       researchContext = null
     } = options;
     const normalizedPlannerCandidates = requireTrustedFactoryPlannerCandidates(
@@ -9155,7 +9219,30 @@ export class HarnessFactory {
         'Harness Factory architecture proposal researchContext requires a trusted structured memory context'
       );
     }
+    if (memoryQuery !== null && researchContext !== null) {
+      throw new TypeError(
+        'Harness Factory architecture proposal cannot use researchContext and memoryQuery together'
+      );
+    }
     const historicalLedger = verifiedLedgerSnapshot(this.ledger);
+    const effectiveResearchContext = memoryQuery === null
+      ? researchContext
+      : buildStructuredMemoryContext({
+        memory: memoryFromLedger({
+          ledger: historicalLedger,
+          maxEntries: maxMemoryEntries,
+          idPrefix: 'harness-factory-architecture-proposal'
+        }),
+        query: normalizedHarnessFactoryProposalMemoryQuery(memoryQuery)
+      });
+    if (
+      memoryQuery !== null
+      && effectiveResearchContext.resultCount === 0
+    ) {
+      throw new Error(
+        'Harness Factory architecture proposal memoryQuery found no matching archive history'
+      );
+    }
     const proposalRunner = this.discoveryRunner.proposalRunner;
     const proposalReport = proposalRunner.propose({
       goal,
@@ -9163,7 +9250,7 @@ export class HarnessFactory {
         normalizedPlannerCandidates,
         ({ id }) => id
       ),
-      researchContext
+      researchContext: effectiveResearchContext
     });
     const resolvedCandidates = proposalRunner.resolve({
       report: proposalReport,

@@ -7,7 +7,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 254.634569 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=ℹ duration_ms 260.541559 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -17,7 +17,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=525 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_SOURCE_OK files=530 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -42,7 +42,7 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.027},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.315},{"
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":6.596},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.303},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2548,3 +2548,28 @@ Scope: provide a runnable Node.js kernel that selects a task representation, exe
   CHECK: node scripts/check-harness-factory-architecture-proposals-authority-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_AUTHORITY_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_AUTHORITY_BOUNDARY_OK proposalLedgerEntries=0 explicitEvaluationStatus=ADOPTED finalLedgerEntries=1 proposalEvaluated=false authorityTransferred=false
+
+- [x] G510: proposal-only exploration can derive its own observed research context from the factory's verified archive and forward it to the process-isolated proposer
+  CHECK: node scripts/check-harness-factory-architecture-proposals-archive-query.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_QUERY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_QUERY_OK source=STRUCTURED_MEMORY results=1 outcome=adopted status=NOVEL ledgerEntries=1 authorityTransferred=false
+
+- [x] G511: archive-backed proposal queries support unique factory-source filters, bounded memory capacity, and deterministic source-count summaries
+  CHECK: node scripts/check-harness-factory-architecture-proposals-archive-query-multi-source.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_QUERY_MULTI_SOURCE_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_QUERY_MULTI_SOURCE_OK sources=ARCHITECTURE_DISCOVERY,HARNESS_FACTORY_ARCHITECTURE_COVERAGE,HARNESS_FACTORY_IMPROVEMENT_REJECTION results=3 ledgerEntries=2 historicalOnly=true
+
+- [x] G512: archive-backed proposal queries reject unsupported, empty, duplicate, accessor-bearing, no-match, and capacity-overflow filters without ledger mutation
+  CHECK: node scripts/check-harness-factory-architecture-proposals-archive-query-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_QUERY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_QUERY_BOUNDARY_OK unsupportedRejected=true emptyRejected=true duplicateRejected=true accessorRejected=true noMatchRejected=true capacityRejected=true ledgerPreserved=true
+
+- [x] G513: proposal-only exploration rejects simultaneous explicit research context and archive query so the proposer receives one unambiguous evidence view
+  CHECK: node scripts/check-harness-factory-architecture-proposals-archive-query-conflict.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_QUERY_CONFLICT_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_QUERY_CONFLICT_OK conflictRejected=true ledgerEntries=0 ledgerPreserved=true
+
+- [x] G514: archive-backed proposal context remains historical-only and cannot restore agents, candidates, reports, code, or authority
+  CHECK: node scripts/check-harness-factory-architecture-proposals-archive-query-authority-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_QUERY_AUTHORITY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_ARCHIVE_QUERY_AUTHORITY_BOUNDARY_OK historicalOnly=true dataOnly=true evaluated=false adopted=false deployed=false ledgerPreserved=true

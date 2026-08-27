@@ -660,7 +660,7 @@
 
       <aside class="hero-visual" aria-label="Verified checkpoint summary">
         <div class="visual-label">Acceptance ledger</div>
-        <div class="visual-number">509/509</div>
+        <div class="visual-number">514/514</div>
         <p class="visual-caption">Marked gates met at the current public checkpoint. This measures the implemented contract—not the distance to artificial general intelligence.</p>
         <div class="metric-row">
           <div class="metric"><span class="metric-label">Tests</span><span class="metric-value">75 / 75</span></div>
@@ -716,7 +716,7 @@
         <div>
           <div class="detail-eyebrow" data-detail="eyebrow">Step 01 · propose</div>
           <div class="detail-title" data-detail="title">Suggest a finite architecture configuration</div>
-          <p class="detail-copy" data-detail="copy">A process-isolated proposer can suggest finite planner-plus-policy configurations from registered building blocks. Before evaluation, the factory can compute the evaluation fingerprint and label each suggestion NOVEL or REPEATED.</p>
+          <p class="detail-copy" data-detail="copy">A process-isolated proposer can suggest finite planner-plus-policy configurations from registered building blocks. The factory can optionally query selected verified archive evidence, then compute the evaluation fingerprint and label each suggestion NOVEL or REPEATED before evaluation.</p>
         </div>
         <div class="detail-aside">
           <strong data-detail="label">Boundary</strong>
@@ -739,7 +739,7 @@
         <button class="lens-button" type="button" data-lens="limits" aria-pressed="false">What is blocked</button>
         <button class="lens-button" type="button" data-lens="direction" aria-pressed="false">Where it is heading</button>
       </div>
-      <p class="lens-note" aria-live="polite" data-lens-note><strong>Now:</strong> a runnable, bounded research-and-evaluation factory with an evidence trail. It can compare designs, label proposed configurations as new or repeated before evaluation, track whether attempts are genuinely new or repeated, combine selected historical signals, and preserve what happened, but it does not rewrite itself.</p>
+      <p class="lens-note" aria-live="polite" data-lens-note><strong>Now:</strong> a runnable, bounded research-and-evaluation factory with an evidence trail. It can query selected factory history, compare designs, label proposed configurations as new or repeated before evaluation, track whether attempts are genuinely new or repeated, combine selected historical signals, and preserve what happened, but it does not rewrite itself.</p>
     </section>
 
     <section class="section" id="capabilities" aria-labelledby="capabilities-heading">
@@ -780,7 +780,7 @@
         <article class="feature">
           <div class="item-top"><span class="item-icon" aria-hidden="true">≋</span><span class="state-label">Live</span></div>
           <h3 class="item-title">Learn from history safely</h3>
-          <p class="item-copy">Later proposers can see bounded summaries of prior evidence—including failed improvements—as observed context, never a restored agent, proof, code, or authority.</p>
+          <p class="item-copy">A proposal pass can query bounded summaries of prior evidence—including failed improvements—while later proposers receive observed context, never a restored agent, proof, code, or authority.</p>
         </article>
         <article class="feature">
           <div class="item-top"><span class="item-icon" aria-hidden="true">◌</span><span class="state-label">Live</span></div>
@@ -823,7 +823,7 @@
         </div>
 
         <div class="evidence-stats">
-          <div class="evidence-stat"><span class="metric-label">Acceptance ledger</span><span class="stat-number">509 / 509</span><span class="stat-text">gates marked met at the public checkpoint</span></div>
+          <div class="evidence-stat"><span class="metric-label">Acceptance ledger</span><span class="stat-number">514 / 514</span><span class="stat-text">gates marked met at the public checkpoint</span></div>
           <div class="evidence-stat"><span class="metric-label">Test suite</span><span class="stat-number">75 / 75</span><span class="stat-text">tests passed in the current local run</span></div>
           <div class="evidence-stat"><span class="metric-label">Deterministic tools</span><span class="stat-number">10</span><span class="stat-text">bounded executor families with verifiers</span></div>
           <div class="evidence-stat"><span class="metric-label">Evaluation modes</span><span class="stat-number">3</span><span class="stat-text">production, research, and skeptic</span></div>
@@ -953,7 +953,7 @@
         propose: {
           eyebrow: 'Step 01 · propose',
           title: 'Suggest a finite architecture configuration',
-          copy: 'A process-isolated proposer can suggest finite planner-plus-policy configurations from registered building blocks. Before evaluation, the factory can compute the evaluation fingerprint and label each suggestion NOVEL or REPEATED.',
+          copy: 'A process-isolated proposer can suggest finite planner-plus-policy configurations from registered building blocks. The factory can optionally query selected verified archive evidence, then compute the evaluation fingerprint and label each suggestion NOVEL or REPEATED before evaluation.',
           label: 'Boundary',
           aside: 'It cannot invent arbitrary code or grant its own proposal authority.'
         },
@@ -1012,7 +1012,7 @@
       const lensButtons = Array.from(root.querySelectorAll('[data-lens]'));
       const lensNote = root.querySelector('[data-lens-note]');
       const lensNotes = {
-        now: '<strong>Now:</strong> a runnable, bounded research-and-evaluation factory with an evidence trail. It can compare designs, label proposed configurations as new or repeated before evaluation, preserve failed attempts as lessons, combine selected historical signals, and keep only verified generations, but it does not rewrite itself.',
+        now: '<strong>Now:</strong> a runnable, bounded research-and-evaluation factory with an evidence trail. It can query selected factory history, compare designs, label proposed configurations as new or repeated before evaluation, preserve failed attempts as lessons, combine selected historical signals, and keep only verified generations, but it does not rewrite itself.',
         limits: '<strong>Limits:</strong> the safety boundary is part of the product. No arbitrary code invention, autonomous deployment, broad live access, or AGI/ASI proof is hiding behind the current demo.',
         direction: '<strong>Direction:</strong> become better at designing and testing harnesses through more research loops, more registered parts, and carefully supervised evolution. That is a roadmap, not a current capability claim.'
       };

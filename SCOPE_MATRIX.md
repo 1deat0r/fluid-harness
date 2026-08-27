@@ -53,6 +53,8 @@ Structured memory can now combine a bounded set of trusted sources in one query 
 
 The session-ledger boundary now archives the complete supervised discovery-plus-coordination summary as a separate hash-chained, fingerprinted, data-only record, including the adopted architecture definition fingerprint. The architecture-discovery ledger boundary also archives the standalone proposal-to-replay-to-adoption transaction with detailed candidate and evaluation evidence. Restoration preserves consistency and quorum/persistence/adoption facts but cannot recreate the session or discovery runner, discovery/adoption authority, agents, planners, action reports, or proof authority.
 
+The proposal-only factory path can now build its own bounded structured-memory context from selected verified factory evidence sources before asking the process-isolated proposer for the next configuration. It rejects unsupported, empty, duplicate, accessor-bearing, no-match, over-capacity, or ambiguous queries; the resulting context remains data-only and historical-only.
+
 ## End-state in plain language
 
 The intended destination is a reusable harness architect and research control tower in which increasingly capable agents can propose ways to think, build new bounded harness configurations, test those configurations against independent evidence, learn from surprises, archive the results, retire failed configurations, and adopt only reproducible improvements under operator-controlled limits.
