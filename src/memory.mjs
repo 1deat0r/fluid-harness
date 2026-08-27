@@ -55,6 +55,7 @@ export const MEMORY_SOURCES = objectFreeze({
   HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION: 'HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION',
   HARNESS_FACTORY_IMPROVEMENT_REJECTION: 'HARNESS_FACTORY_IMPROVEMENT_REJECTION',
   HARNESS_FACTORY_ARCHITECTURE_COVERAGE: 'HARNESS_FACTORY_ARCHITECTURE_COVERAGE',
+  HARNESS_FACTORY_ARCHITECTURE_PROPOSAL: 'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL',
   COORDINATION: 'COORDINATION',
   DISTRIBUTION_SHIFT: 'DISTRIBUTION_SHIFT',
   ENSEMBLE: 'ENSEMBLE',
@@ -1026,6 +1027,54 @@ function harnessFactoryImprovementRejectionMemoryEntry(
   });
 }
 
+function harnessFactoryArchitectureProposalMemoryEntries(
+  batch,
+  prefix,
+  batchIndex,
+  provenance = null
+) {
+  return arrayMap(batch.proposals, (proposal, proposalIndex) => {
+    const status = proposal.novel ? 'novel' : 'repeated';
+    const keywords = [
+      'harness-factory-architecture-proposal',
+      'proposal-untested',
+      `proposal-${status}`,
+      `historical-matches-${proposal.historicalMatchCount}`,
+      `batch-${batchIndex + 1}`
+    ];
+    const addKeyword = (keyword) => {
+      if (
+        typeof keyword === 'string'
+        && keyword.length <= MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH
+        && keywords.length < MAX_STRUCTURED_MEMORY_KEYWORDS
+        && !arrayIncludes(keywords, keyword)
+      ) {
+        arrayPush(keywords, keyword);
+      }
+    };
+    addKeyword(`factory-${batch.factoryId}`);
+    addKeyword(proposal.id);
+    addKeyword(proposal.plannerCandidateId);
+    return new StructuredMemoryEntry({
+      architectureId: proposal.id.length <= 128 ? proposal.id : null,
+      id: `${prefix}:harness-factory-architecture-proposal:${batchIndex}:${proposalIndex}`,
+      taskId: isSafeInteger(provenance?.sequence) && provenance.sequence > 0
+        ? `harness-factory-architecture-proposal:${provenance.sequence}:${proposalIndex}`
+        : `harness-factory-architecture-proposal:${batchIndex}:${proposalIndex}`,
+      description: `Historical Harness Factory architecture proposal ${status}`,
+      strategyKey: 'harness-factory-architecture-proposal',
+      evidence: EVIDENCE_LEVELS.OBSERVED,
+      surpriseBand: SURPRISE_BANDS.LOW,
+      surpriseNats: 0,
+      predictionError: false,
+      actionNumber: null,
+      source: MEMORY_SOURCES.HARNESS_FACTORY_ARCHITECTURE_PROPOSAL,
+      keywords,
+      provenance
+    });
+  });
+}
+
 function harnessFactoryArchitectureCoverageMemoryEntries(ledger, prefix) {
   const discoveries = ledger.restoreArchitectureDiscoveries();
   const discoveryRecords = ledgerRecordsOfKind(ledger, 'architecture-discovery');
@@ -1668,6 +1717,26 @@ export class BoundedStructuredMemory {
         provenanceForLedgerRecord(improvementRejectionRecords[rejectionIndex])
       )
     );
+    const architectureProposalArchives =
+      ledger.restoreHarnessFactoryArchitectureProposals();
+    const architectureProposalRecords = ledgerRecordsOfKind(
+      ledger,
+      'harness-factory-architecture-proposals'
+    );
+    const architectureProposalMemoryEntries = [];
+    arrayForEach(
+      architectureProposalArchives,
+      (batch, batchIndex) => {
+        const record = architectureProposalRecords[batchIndex];
+        const entries = harnessFactoryArchitectureProposalMemoryEntries(
+          batch,
+          prefix,
+          batchIndex,
+          provenanceForLedgerRecord(record)
+        );
+        arrayForEach(entries, (entry) => arrayPush(architectureProposalMemoryEntries, entry));
+      }
+    );
     const architectureCoverageMemoryEntries =
       harnessFactoryArchitectureCoverageMemoryEntries(ledger, prefix);
     const benchmarkFrontierValidationMemoryEntries = [];
@@ -1767,6 +1836,7 @@ export class BoundedStructuredMemory {
       + benchmarkValidations.length
       + researchPlanExecutionMemoryEntries.length
       + improvementRejectionMemoryEntries.length
+      + architectureProposalMemoryEntries.length
       + architectureCoverageMemoryEntries.length
       + benchmarkFrontierValidationMemoryEntries.length
       + benchmarkFrontierValidationStabilityMemoryEntries.length
@@ -1835,6 +1905,9 @@ export class BoundedStructuredMemory {
       arrayPush(entries, entry);
     });
     arrayForEach(improvementRejectionMemoryEntries, (entry) => {
+      arrayPush(entries, entry);
+    });
+    arrayForEach(architectureProposalMemoryEntries, (entry) => {
       arrayPush(entries, entry);
     });
     arrayForEach(architectureCoverageMemoryEntries, (entry) => {

@@ -11,6 +11,8 @@ import {
   isTrustedAgentArchitectureDiscoveryReport
 } from './agent-architecture-discovery.mjs';
 import {
+  MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_ENTRIES,
+  isTrustedHarnessFactoryArchitectureProposalReport,
   isTrustedHarnessFactoryBenchmarkCampaignReport,
   isTrustedHarnessFactoryBenchmarkCampaignValidationReport,
   isTrustedHarnessFactoryImprovementRejectionReport,
@@ -117,6 +119,7 @@ const LEDGER_KINDS = objectFreeze([
   'architecture-discovery',
   'harness-factory-benchmark-campaign',
   'harness-factory-benchmark-validation',
+  'harness-factory-architecture-proposals',
   'harness-factory-improvement-rejection',
   'harness-factory-research-plan-execution',
   'harness-factory-validation',
@@ -537,6 +540,48 @@ const HARNESS_FACTORY_IMPROVEMENT_REJECTION_KEYS = objectFreeze([
   'factoryId',
   'improvement',
   'reasons'
+]);
+const HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_KEYS = objectFreeze([
+  'adopted',
+  'authorityTransferred',
+  'dataOnly',
+  'deployed',
+  'evaluated',
+  'factoryId',
+  'goal',
+  'novelProposalCount',
+  'proposalCount',
+  'proposalSource',
+  'proposals',
+  'repeatedProposalCount',
+  'researchContext'
+]);
+const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_KEYS = objectFreeze([
+  'architectureFingerprint',
+  'authorityTransferred',
+  'batchDuplicate',
+  'components',
+  'dataOnly',
+  'historicalMatchCount',
+  'id',
+  'novel',
+  'plannerCandidateId',
+  'policy',
+  'repeated',
+  'status'
+]);
+const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_POLICY_KEYS = objectFreeze([
+  'maxEpisodes',
+  'maxToolCallsPerEpisode'
+]);
+const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_RESEARCH_CONTEXT_KEYS = objectFreeze([
+  'authorityTransferred',
+  'dataOnly',
+  'historicalOnly',
+  'query',
+  'resultCount',
+  'source',
+  'sourceCounts'
 ]);
 const HARNESS_FACTORY_IMPROVEMENT_REJECTION_BASELINE_KEYS = objectFreeze([
   'architectureFingerprint',
@@ -2726,6 +2771,218 @@ function normalizeHarnessFactoryImprovementRejectionPayload(payload) {
   });
 }
 
+function normalizeHarnessFactoryArchitectureProposalPolicy(value, index) {
+  const normalized = snapshotData(value);
+  if (
+    !isPlainObject(normalized)
+    || !hasExactKeys(
+      normalized,
+      HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_POLICY_KEYS
+    )
+    || !isSafeInteger(normalized.maxEpisodes)
+    || normalized.maxEpisodes < AGENT_POLICY_LIMITS.MIN_EPISODES
+    || normalized.maxEpisodes > AGENT_POLICY_LIMITS.MAX_EPISODES
+    || !isSafeInteger(normalized.maxToolCallsPerEpisode)
+    || normalized.maxToolCallsPerEpisode < AGENT_POLICY_LIMITS.MIN_TOOL_CALLS_PER_EPISODE
+    || normalized.maxToolCallsPerEpisode > AGENT_POLICY_LIMITS.MAX_TOOL_CALLS_PER_EPISODE
+  ) {
+    throw new TypeError(
+      `Evidence ledger Harness Factory architecture proposal ${index} policy is invalid`
+    );
+  }
+  return objectFreeze({
+    maxEpisodes: normalized.maxEpisodes,
+    maxToolCallsPerEpisode: normalized.maxToolCallsPerEpisode
+  });
+}
+
+function normalizeHarnessFactoryArchitectureProposalResearchContext(value) {
+  if (value === null) {
+    return null;
+  }
+  const normalized = snapshotData(value);
+  if (
+    !isPlainObject(normalized)
+    || !hasExactKeys(
+      normalized,
+      HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_RESEARCH_CONTEXT_KEYS
+    )
+    || normalized.source !== 'STRUCTURED_MEMORY'
+    || !isPlainObject(normalized.query)
+    || !isSafeInteger(normalized.resultCount)
+    || normalized.resultCount < 0
+    || !isPlainObject(normalized.sourceCounts)
+    || normalized.dataOnly !== true
+    || normalized.historicalOnly !== true
+    || normalized.authorityTransferred !== false
+  ) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory architecture proposal research context is invalid'
+    );
+  }
+  let sourceCountTotal = 0;
+  arrayForEach(objectKeys(normalized.sourceCounts), (source) => {
+    requireNonEmptyString(
+      source,
+      'Evidence ledger Harness Factory architecture proposal research source'
+    );
+    const count = normalized.sourceCounts[source];
+    if (!isSafeInteger(count) || count < 0) {
+      throw new TypeError(
+        'Evidence ledger Harness Factory architecture proposal research source counts are invalid'
+      );
+    }
+    sourceCountTotal += count;
+  });
+  if (sourceCountTotal !== normalized.resultCount) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory architecture proposal research source counts are invalid'
+    );
+  }
+  return objectFreeze({
+    authorityTransferred: false,
+    dataOnly: true,
+    historicalOnly: true,
+    query: objectFreeze({ ...normalized.query }),
+    resultCount: normalized.resultCount,
+    source: normalized.source,
+    sourceCounts: objectFreeze({ ...normalized.sourceCounts })
+  });
+}
+
+function normalizeHarnessFactoryArchitectureProposal(value, index) {
+  const normalized = snapshotData(value);
+  if (
+    !isPlainObject(normalized)
+    || !hasExactKeys(normalized, HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_KEYS)
+    || normalized.dataOnly !== true
+    || normalized.authorityTransferred !== false
+    || !isPlainObject(normalized.components)
+    || !isSafeInteger(normalized.historicalMatchCount)
+    || normalized.historicalMatchCount < 0
+    || typeof normalized.batchDuplicate !== 'boolean'
+    || typeof normalized.novel !== 'boolean'
+    || typeof normalized.repeated !== 'boolean'
+    || normalized.novel === normalized.repeated
+    || !arrayIncludes(['NOVEL', 'REPEATED'], normalized.status)
+    || normalized.novel !== (normalized.status === 'NOVEL')
+    || normalized.repeated !== !normalized.novel
+    || normalized.novel
+      && (normalized.historicalMatchCount !== 0 || normalized.batchDuplicate)
+    || normalized.repeated
+      && normalized.historicalMatchCount === 0
+      && !normalized.batchDuplicate
+  ) {
+    throw new TypeError(
+      `Evidence ledger Harness Factory architecture proposal ${index} is invalid`
+    );
+  }
+  return objectFreeze({
+    architectureFingerprint: requireNonEmptyString(
+      normalized.architectureFingerprint,
+      `Evidence ledger Harness Factory architecture proposal ${index} architectureFingerprint`
+    ),
+    authorityTransferred: false,
+    batchDuplicate: normalized.batchDuplicate,
+    components: normalized.components,
+    dataOnly: true,
+    historicalMatchCount: normalized.historicalMatchCount,
+    id: requireNonEmptyString(
+      normalized.id,
+      `Evidence ledger Harness Factory architecture proposal ${index} id`
+    ),
+    novel: normalized.novel,
+    plannerCandidateId: requireNonEmptyString(
+      normalized.plannerCandidateId,
+      `Evidence ledger Harness Factory architecture proposal ${index} plannerCandidateId`
+    ),
+    policy: normalizeHarnessFactoryArchitectureProposalPolicy(normalized.policy, index),
+    repeated: normalized.repeated,
+    status: normalized.status
+  });
+}
+
+function normalizeHarnessFactoryArchitectureProposalsPayload(payload) {
+  const normalized = snapshotData(payload);
+  if (
+    !isPlainObject(normalized)
+    || !hasExactKeys(normalized, HARNESS_FACTORY_ARCHITECTURE_PROPOSALS_KEYS)
+  ) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory architecture proposals payload has an invalid shape'
+    );
+  }
+  arrayForEach(
+    ['adopted', 'authorityTransferred', 'dataOnly', 'deployed', 'evaluated'],
+    (field) => requireBoolean(
+      normalized[field],
+      `Evidence ledger Harness Factory architecture proposals ${field}`
+    )
+  );
+  if (
+    normalized.adopted !== false
+    || normalized.authorityTransferred !== false
+    || normalized.dataOnly !== true
+    || normalized.deployed !== false
+    || normalized.evaluated !== false
+  ) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory architecture proposals proof boundary is invalid'
+    );
+  }
+  const proposals = normalized.proposals;
+  if (
+    !arrayIsArray(proposals)
+    || proposals.length === 0
+    || proposals.length > MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_ENTRIES
+  ) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory architecture proposals are invalid'
+    );
+  }
+  const normalizedProposals = objectFreeze(arrayMap(
+    proposals,
+    normalizeHarnessFactoryArchitectureProposal
+  ));
+  const proposalIds = arrayMap(normalizedProposals, ({ id }) => id);
+  if (
+    setSize(setFromArray(proposalIds)) !== proposalIds.length
+    || normalized.proposalCount !== normalizedProposals.length
+    || normalized.novelProposalCount !== trueCount(normalizedProposals, 'novel')
+    || normalized.repeatedProposalCount !== trueCount(normalizedProposals, 'repeated')
+  ) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory architecture proposal counts are inconsistent'
+    );
+  }
+  return objectFreeze({
+    adopted: false,
+    authorityTransferred: false,
+    dataOnly: true,
+    deployed: false,
+    evaluated: false,
+    factoryId: requireNonEmptyString(
+      normalized.factoryId,
+      'Evidence ledger Harness Factory architecture proposals factoryId'
+    ),
+    goal: requireNonEmptyString(
+      normalized.goal,
+      'Evidence ledger Harness Factory architecture proposals goal'
+    ),
+    novelProposalCount: normalized.novelProposalCount,
+    proposalCount: normalized.proposalCount,
+    proposalSource: requireNonEmptyString(
+      normalized.proposalSource,
+      'Evidence ledger Harness Factory architecture proposals proposalSource'
+    ),
+    proposals: normalizedProposals,
+    researchContext: normalizeHarnessFactoryArchitectureProposalResearchContext(
+      normalized.researchContext
+    ),
+    repeatedProposalCount: normalized.repeatedProposalCount
+  });
+}
+
 function validateHarnessFactoryImprovementRejectionBaseline(records, payload) {
   const baselineRecord = arrayFind(
     records,
@@ -3591,6 +3848,34 @@ function harnessFactoryImprovementRejectionPayload(report) {
     factoryId: report.factoryId,
     improvement: report.improvement,
     reasons: report.reasons
+  });
+}
+
+function harnessFactoryArchitectureProposalsPayload(report) {
+  if (!isTrustedHarnessFactoryArchitectureProposalReport(report)) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory architecture proposal entries require a trusted report'
+    );
+  }
+  if (report.archived !== false || report.archive !== null) {
+    throw new TypeError(
+      'Evidence ledger Harness Factory architecture proposal entries require a pending report'
+    );
+  }
+  return normalizeHarnessFactoryArchitectureProposalsPayload({
+    adopted: report.adopted,
+    authorityTransferred: report.authorityTransferred,
+    dataOnly: report.dataOnly,
+    deployed: report.deployed,
+    evaluated: report.evaluated,
+    factoryId: report.factoryId,
+    goal: report.goal,
+    novelProposalCount: report.novelProposalCount,
+    proposalCount: report.proposalCount,
+    proposalSource: report.source,
+    proposals: report.proposals,
+    researchContext: report.researchContext,
+    repeatedProposalCount: report.repeatedProposalCount
   });
 }
 
@@ -7221,6 +7506,11 @@ export class EvidenceLedger {
     return this.#append('harness-factory-benchmark-validation', payload);
   }
 
+  appendHarnessFactoryArchitectureProposals(report) {
+    const payload = harnessFactoryArchitectureProposalsPayload(report);
+    return this.#append('harness-factory-architecture-proposals', payload);
+  }
+
   appendHarnessFactoryValidation(report) {
     const payload = harnessFactoryValidationPayload(report);
     validateHarnessFactoryValidationBaseline(this.#records, payload);
@@ -7472,6 +7762,30 @@ export class EvidenceLedger {
     return objectFreeze(validations);
   }
 
+  restoreHarnessFactoryArchitectureProposals() {
+    if (!this.verify()) {
+      throw new Error(
+        'Evidence ledger cannot restore Harness Factory architecture proposals from an invalid chain'
+      );
+    }
+    const batches = [];
+    arrayForEach(this.#records, (record) => {
+      if (record.kind !== 'harness-factory-architecture-proposals') {
+        return;
+      }
+      const batch = normalizeHarnessFactoryArchitectureProposalsPayload(record.payload);
+      arrayPush(batches, objectFreeze({
+        ...batch,
+        archive: objectFreeze({
+          kind: record.kind,
+          sequence: record.sequence,
+          hash: record.hash
+        })
+      }));
+    });
+    return objectFreeze(batches);
+  }
+
   restoreHarnessFactoryValidations() {
     if (!this.verify()) {
       throw new Error(
@@ -7665,6 +7979,8 @@ export class EvidenceLedger {
             ? normalizeHarnessFactoryBenchmarkCampaignPayload(record.payload)
           : record.kind === 'harness-factory-benchmark-validation'
             ? normalizeHarnessFactoryBenchmarkValidationPayload(record.payload)
+          : record.kind === 'harness-factory-architecture-proposals'
+            ? normalizeHarnessFactoryArchitectureProposalsPayload(record.payload)
           : record.kind === 'harness-factory-research-plan-execution'
             ? normalizeHarnessFactoryResearchPlanExecutionPayload(record.payload)
           : record.kind === 'harness-factory-improvement-rejection'
