@@ -518,6 +518,7 @@ const HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION_KEYS = objectFreeze([
   'dataOnly',
   'factoryId',
   'planId',
+  'resultArchiveLocators',
   'resultArchiveSequences',
   'resultStatus',
   'resultType',
@@ -2355,15 +2356,38 @@ function normalizeHarnessFactoryResearchPlanExecutionPayload(payload) {
       'Evidence ledger Harness Factory research plan execution identity is invalid'
     );
   }
+  const resultArchiveLocators = arrayIsArray(normalized.resultArchiveLocators)
+    ? arrayMap(
+      normalized.resultArchiveLocators,
+      (archive, index) => normalizeHarnessFactoryResearchPlanExecutionArchive(
+        archive,
+        index
+      )
+    )
+    : null;
+  const resultArchiveSequences = arrayIsArray(normalized.resultArchiveSequences)
+    ? arraySort(arraySlice(normalized.resultArchiveSequences), (left, right) => left - right)
+    : null;
+  const locatorSequences = resultArchiveLocators === null
+    ? null
+    : arraySort(
+      arrayMap(resultArchiveLocators, ({ sequence }) => sequence),
+      (left, right) => left - right
+    );
   if (
     normalized.dataOnly !== true
     || normalized.authorityTransferred !== false
     || typeof normalized.targetResolved !== 'boolean'
-    || !arrayIsArray(normalized.resultArchiveSequences)
-    || setSize(setFromArray(normalized.resultArchiveSequences))
-      !== normalized.resultArchiveSequences.length
+    || resultArchiveLocators === null
+    || resultArchiveSequences === null
+    || setSize(setFromArray(resultArchiveSequences))
+      !== resultArchiveSequences.length
+    || setSize(setFromArray(locatorSequences))
+      !== locatorSequences.length
+    || resultArchiveSequences.length !== resultArchiveLocators.length
+    || jsonStringify(locatorSequences) !== jsonStringify(resultArchiveSequences)
     || !arrayEvery(
-      normalized.resultArchiveSequences,
+      resultArchiveSequences,
       (sequence) => isSafeInteger(sequence) && sequence > 0
     )
   ) {
@@ -2378,13 +2402,43 @@ function normalizeHarnessFactoryResearchPlanExecutionPayload(payload) {
     dataOnly: true,
     factoryId,
     planId,
+    resultArchiveLocators: objectFreeze(
+      arraySort(resultArchiveLocators, (left, right) => left.sequence - right.sequence)
+    ),
     resultArchiveSequences: objectFreeze(
-      arraySort(arraySlice(normalized.resultArchiveSequences), (left, right) => left - right)
+      resultArchiveSequences
     ),
     resultStatus,
     resultType,
     target,
     targetResolved: normalized.targetResolved
+  });
+}
+
+function normalizeHarnessFactoryResearchPlanExecutionArchive(value, index) {
+  const normalized = snapshotData(value);
+  if (
+    !isPlainObject(normalized)
+    || !hasExactKeys(normalized, HARNESS_FACTORY_VALIDATION_BASELINE_KEYS)
+  ) {
+    throw new TypeError(
+      `Evidence ledger Harness Factory research plan execution archive ${index} is invalid`
+    );
+  }
+  return objectFreeze({
+    hash: requireNonEmptyString(
+      normalized.hash,
+      `Evidence ledger Harness Factory research plan execution archive ${index} hash`
+    ),
+    kind: requireNonEmptyString(
+      normalized.kind,
+      `Evidence ledger Harness Factory research plan execution archive ${index} kind`
+    ),
+    sequence: requireDiscoveryCount(
+      normalized.sequence,
+      `Evidence ledger Harness Factory research plan execution archive ${index} sequence`,
+      1
+    )
   });
 }
 
@@ -2419,19 +2473,21 @@ function validateHarnessFactoryResearchPlanExecutionArchives(records, payload) {
   const expectedKinds = harnessFactoryResearchPlanExecutionArchiveKinds(
     payload.resultType
   );
-  if (payload.resultArchiveSequences.length === 0) {
+  if (payload.resultArchiveLocators.length === 0) {
     throw new TypeError(
       'Evidence ledger Harness Factory research plan execution must reference an archive'
     );
   }
-  arrayForEach(payload.resultArchiveSequences, (sequence) => {
+  arrayForEach(payload.resultArchiveLocators, (locator) => {
     const archive = arrayFind(
       records,
-      (record) => record.sequence === sequence
+      (record) => record.sequence === locator.sequence
+        && record.kind === locator.kind
+        && record.hash === locator.hash
     );
     if (archive === undefined) {
       throw new Error(
-        'Evidence ledger Harness Factory research plan execution archive is not in the current chain'
+        'Evidence ledger Harness Factory research plan execution archive locator is not in the current chain'
       );
     }
     if (!arrayIncludes(expectedKinds, archive.kind)) {
@@ -3155,6 +3211,7 @@ function harnessFactoryResearchPlanExecutionPayload(report) {
     dataOnly: report.dataOnly,
     factoryId: report.factoryId,
     planId: report.planId,
+    resultArchiveLocators: report.resultArchiveLocators,
     resultArchiveSequences: report.resultArchiveSequences,
     resultStatus: report.resultStatus,
     resultType: report.resultType,

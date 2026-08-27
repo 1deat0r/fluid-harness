@@ -525,6 +525,24 @@ function archiveLocator(record) {
   });
 }
 
+function isValidArchiveLocator(record) {
+  const keys = record !== null && typeof record === 'object'
+    ? reflectOwnKeys(record)
+    : [];
+  return isPlainObject(record)
+    && keys.length === 3
+    && arrayEvery(
+      ['hash', 'kind', 'sequence'],
+      (key) => arrayIncludes(keys, key)
+    )
+    && typeof record.kind === 'string'
+    && stringTrim(record.kind) !== ''
+    && isSafeInteger(record.sequence)
+    && record.sequence > 0
+    && typeof record.hash === 'string'
+    && stringTrim(record.hash) !== '';
+}
+
 function verifiedLedgerSnapshot(ledger) {
   if (!isTrustedEvidenceLedger(ledger)) {
     throw new TypeError('Harness Factory improvement requires a trusted evidence ledger');
@@ -7752,15 +7770,15 @@ export function isTrustedHarnessFactoryReport(report) {
     && objectGetPrototypeOf(report) === HarnessFactoryReport.prototype;
 }
 
-function researchPlanExecutionArchiveSequences(result) {
-  const sequences = [];
+function researchPlanExecutionArchiveLocators(result) {
+  const locators = [];
   const addArchive = (archive) => {
     if (archive === null) {
       return;
     }
     const normalized = archiveLocator(archive);
-    if (!arrayIncludes(sequences, normalized.sequence)) {
-      arrayPush(sequences, normalized.sequence);
+    if (!arraySome(locators, ({ sequence }) => sequence === normalized.sequence)) {
+      arrayPush(locators, normalized);
     }
   };
   if (isTrustedHarnessFactoryReport(result)) {
@@ -7783,7 +7801,10 @@ function researchPlanExecutionArchiveSequences(result) {
       'Harness Factory research plan execution requires a trusted execution result'
     );
   }
-  return objectFreeze(arraySort(sequences, (left, right) => left - right));
+  return objectFreeze(arraySort(
+    locators,
+    (left, right) => left.sequence - right.sequence
+  ));
 }
 
 function researchPlanExecutionResultSummary(result) {
@@ -7830,10 +7851,14 @@ function researchPlanExecutionResultSummary(result) {
       'Harness Factory research plan execution result summary is invalid'
     );
   }
+  const resultArchiveLocators = researchPlanExecutionArchiveLocators(result);
   return objectFreeze({
     authorityTransferred: false,
     dataOnly: true,
-    resultArchiveSequences: researchPlanExecutionArchiveSequences(result),
+    resultArchiveLocators,
+    resultArchiveSequences: objectFreeze(
+      arrayMap(resultArchiveLocators, ({ sequence }) => sequence)
+    ),
     resultStatus,
     resultType,
     targetResolved
@@ -7877,6 +7902,7 @@ export class HarnessFactoryResearchPlanExecutionReport {
     this.resultType = summary.resultType;
     this.resultStatus = summary.resultStatus;
     this.targetResolved = summary.targetResolved;
+    this.resultArchiveLocators = summary.resultArchiveLocators;
     this.resultArchiveSequences = summary.resultArchiveSequences;
     this.result = result;
     this.completed = true;
@@ -7910,6 +7936,7 @@ const RESEARCH_PLAN_EXECUTION_HISTORY_ITEM_KEYS = objectFreeze([
   'dataOnly',
   'factoryId',
   'planId',
+  'resultArchiveLocators',
   'resultArchiveSequences',
   'resultStatus',
   'resultType',
@@ -7982,6 +8009,23 @@ export class HarnessFactoryResearchPlanExecutionHistoryReport {
             execution.resultArchiveSequences,
             (sequence) => isSafeInteger(sequence) && sequence > 0
           )
+          || !arrayIsArray(execution.resultArchiveLocators)
+          || execution.resultArchiveLocators.length !== execution.resultArchiveSequences.length
+          || !arrayEvery(
+            execution.resultArchiveLocators,
+            (archive) => isValidArchiveLocator(archive)
+          )
+          || setSize(setFromArray(arrayMap(
+            execution.resultArchiveLocators,
+            ({ sequence }) => sequence
+          ))) !== execution.resultArchiveLocators.length
+          || jsonStringify(arrayMap(
+            arraySort(
+              arraySlice(execution.resultArchiveLocators),
+              (left, right) => left.sequence - right.sequence
+            ),
+            ({ sequence }) => sequence
+          )) !== jsonStringify(execution.resultArchiveSequences)
           || !isPlainObject(execution.archive)
           || execution.archive.kind !== 'harness-factory-research-plan-execution'
           || !isSafeInteger(execution.archive.sequence)
@@ -8008,6 +8052,10 @@ export class HarnessFactoryResearchPlanExecutionHistoryReport {
       (execution) => objectFreeze({
         ...execution,
         archive: objectFreeze({ ...execution.archive }),
+        resultArchiveLocators: objectFreeze(arrayMap(
+          execution.resultArchiveLocators,
+          (archive) => objectFreeze({ ...archive })
+        )),
         resultArchiveSequences: objectFreeze(arraySlice(execution.resultArchiveSequences))
       })
     ));

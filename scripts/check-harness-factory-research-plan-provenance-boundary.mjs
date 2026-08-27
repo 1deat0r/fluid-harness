@@ -40,10 +40,19 @@ function stableSerialize(value) {
   )).join(',')}}`;
 }
 
-function resealReceipt(serialized, resultArchiveSequences) {
+function resealReceipt(serialized, resultArchiveSequences, mutateLocators = (locators) => locators) {
   const parsed = JSON.parse(serialized);
   const receipt = parsed.records[parsed.records.length - 1];
   receipt.payload.resultArchiveSequences = resultArchiveSequences;
+  const locators = resultArchiveSequences.map((sequence) => {
+    const archive = parsed.records.find((record) => record.sequence === sequence);
+    return {
+      kind: archive?.kind ?? 'harness-factory-validation',
+      sequence,
+      hash: archive?.hash ?? 'sha256:missing-research-plan-archive'
+    };
+  });
+  receipt.payload.resultArchiveLocators = mutateLocators(locators);
   const material = {
     schemaVersion: receipt.schemaVersion,
     sequence: receipt.sequence,
@@ -79,13 +88,22 @@ const before = fixture.ledger.serialize();
 const missingArchive = resealReceipt(before, [999999]);
 assert.throws(
   () => EvidenceLedger.fromSerialized(missingArchive),
-  /archive is not in the current chain/
+  /archive locator is not in the current chain/
 );
 
 const wrongKindArchive = resealReceipt(before, [1]);
 assert.throws(
   () => EvidenceLedger.fromSerialized(wrongKindArchive),
   /archive kind does not match the result/
+);
+
+const wrongHashArchive = resealReceipt(before, [2], (locators) => [{
+  ...locators[0],
+  hash: 'sha256:resealed-but-not-the-source'
+}]);
+assert.throws(
+  () => EvidenceLedger.fromSerialized(wrongHashArchive),
+  /archive locator is not in the current chain/
 );
 
 const emptyArchives = resealReceipt(before, []);
@@ -99,6 +117,6 @@ assert.equal(fixture.ledger.verify(), true);
 
 console.log(
   `FLUID_HARNESS_FACTORY_RESEARCH_PLAN_PROVENANCE_BOUNDARY_OK `
-  + `missingRejected=true wrongKindRejected=true emptyRejected=true `
+  + `missingRejected=true wrongKindRejected=true hashRejected=true emptyRejected=true `
   + `ledgerUnchanged=true verified=${fixture.ledger.verify()}`
 );

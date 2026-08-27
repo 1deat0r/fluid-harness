@@ -47,11 +47,20 @@ const receipt = fixture.factory.executeResearchPlanReceipt(plan, {
 
 assert.deepEqual(receipt.resultArchiveSequences.length, 1);
 assert.equal(receipt.resultArchiveSequences[0] < receipt.archive.sequence, true);
+assert.deepEqual(
+  receipt.resultArchiveLocators.map(({ sequence }) => sequence),
+  receipt.resultArchiveSequences
+);
 const resultArchive = fixture.ledger.records.find(
   ({ sequence }) => sequence === receipt.resultArchiveSequences[0]
 );
 assert.notEqual(resultArchive, undefined);
 assert.equal(resultArchive.kind, 'harness-factory-validation');
+assert.deepEqual(receipt.resultArchiveLocators[0], {
+  kind: resultArchive.kind,
+  sequence: resultArchive.sequence,
+  hash: resultArchive.hash
+});
 assert.equal(fixture.ledger.verify(), true);
 
 const restored = EvidenceLedger.fromSerialized(fixture.ledger.serialize());
@@ -65,5 +74,5 @@ console.log(
   `FLUID_HARNESS_FACTORY_RESEARCH_PLAN_PROVENANCE_OK `
   + `resultType=${receipt.resultType} resultSequence=${resultArchive.sequence} `
   + `resultKind=${resultArchive.kind} receiptSequence=${receipt.archive.sequence} `
-  + `prior=true verified=${restored.verify()}`
+  + `locatorBound=true prior=true verified=${restored.verify()}`
 );

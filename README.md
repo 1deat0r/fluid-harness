@@ -609,7 +609,7 @@ The `HarnessFactory` façade is the first lifecycle-level assembly line over tho
 
 Execution receipts can be imported into structured memory under `MEMORY_SOURCES.HARNESS_FACTORY_RESEARCH_PLAN_EXECUTION`. That memory contains only the target, bridge, result kind/status, resolution state, bounded archive-count signal, and receipt provenance; it is `OBSERVED` historical context for later proposer/improvement cycles, not a trusted plan, runtime artifact, proof, or authority.
 
-Receipt persistence also checks provenance semantically: every receipt must reference at least one earlier ledger record, and each referenced record must be an archive kind allowed for that result type. Missing, future, or wrong-kind references are rejected even when a tampered payload has been resealed with a valid chain hash.
+Receipt persistence also checks provenance semantically: every receipt must reference at least one earlier ledger record through its exact `{kind, sequence, hash}` locator, and each referenced record must be an archive kind allowed for that result type. Missing, future, wrong-kind, or wrong-hash references are rejected even when a tampered payload has been resealed with a valid chain hash.
 
 `factory.benchmark({ candidate, cases, levels })` is the factory’s bounded architecture benchmarker. It evaluates a fresh candidate at finite budget levels, independently replays each level with fresh search runners, rejects definition drift between levels, and returns summary metrics plus a compute/fitness Pareto frontier. The candidate, search reports, runners, and action evidence remain private; the benchmark does not adopt, deploy, or archive the candidate.
 
