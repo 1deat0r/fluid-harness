@@ -46,12 +46,20 @@ const pendingBatch = factory.proposeArchitectures({
 });
 const forgedBatch = { ...batch };
 const agenda = factory.researchAgenda();
-const item = agenda.items.find((candidate) => candidate.target === REPLAY);
-const planItem = factory.researchPlan().plans.find(
-  (candidate) => candidate.target === REPLAY
-);
+const named = (locator) => (candidate) => candidate.target === REPLAY
+  && candidate.archive.kind === locator.kind
+  && candidate.archive.sequence === locator.sequence
+  && candidate.archive.hash === locator.hash;
+const item = agenda.items.find(named(otherBatch.archive));
+const planItem = factory.researchPlan().plans.find(named(otherBatch.archive));
 assert.notEqual(item, undefined);
+assert.notEqual(planItem, undefined);
 assert.equal(item.archive.sequence, otherBatch.archive.sequence);
+assert.equal(
+  agenda.items.filter((candidate) => candidate.target === REPLAY)[0].archive.sequence,
+  batch.archive.sequence,
+  'the replay backlog waits first-in-first-out'
+);
 const validOptions = {
   proposalReport: otherBatch,
   plannerCandidates: [plannerCandidate],

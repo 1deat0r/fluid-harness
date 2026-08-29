@@ -277,6 +277,35 @@ export function proposeArchitectureDirect({ plannerCandidateIds }) {
   };
 }
 
+export function proposeArchitectureTwoVariants({ plannerCandidateIds }) {
+  return {
+    proposals: [
+      {
+        id: 'process-architecture-variant-a',
+        plannerCandidateId: plannerCandidateIds[0],
+        policy: { maxEpisodes: 2, maxToolCallsPerEpisode: 2 },
+        components: {
+          planner: 'registered-process-planner',
+          policy: 'bounded-v1',
+          verifier: 'parent-core',
+          variant: 'a'
+        }
+      },
+      {
+        id: 'process-architecture-variant-b',
+        plannerCandidateId: plannerCandidateIds[0],
+        policy: { maxEpisodes: 2, maxToolCallsPerEpisode: 2 },
+        components: {
+          planner: 'registered-process-planner',
+          policy: 'bounded-v1',
+          verifier: 'parent-core',
+          variant: 'b'
+        }
+      }
+    ]
+  };
+}
+
 export function proposeArchitectureDuplicateBatch({ plannerCandidateIds }) {
   const shared = {
     plannerCandidateId: plannerCandidateIds[0],

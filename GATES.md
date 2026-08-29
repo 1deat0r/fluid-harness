@@ -2685,3 +2685,28 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
   CHECK: node scripts/check-harness-factory-architecture-proposal-replay-outcome-authority-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_AUTHORITY_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_AUTHORITY_BOUNDARY_OK sourceEvaluated=false sourceAdopted=false sourceDeployed=false sourceDataOnly=true forgedRejected=true accessorRejected=true bridgeRejected=true strictGainRequ
+
+- [x] G537: the Harness Factory counts archived replay attempts per proposal batch, credits every architecture a generation actually evaluated even when it lost, and keeps a batch whose replay adopted nothing in the backlog
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempts.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPTS_OK credit=2of2 failingAttempts=2 failingUntested=1 goodAttempts=1 goodUntested=0 queued=1 queuePriority=190 adoptedOutcomes=0 rejectedOutcomes=1 waitingBacklog=2+0 generations=3 le
+
+- [x] G538: a re-queued proposal batch can be dispatched again through the same replay plan and receipt, each attempt archives its own generation, and the receipt reports the target unresolved until the backlog itself retires
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempt-execution.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_EXECUTION_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_EXECUTION_OK firstResolved=false firstStatus=REJECTED attempts=3 sameItem=true distinctGenerations=3 replayCount=3 adopted=0 queueStatus=REPLAYED generations=3 ledgerEntries=7 verif
+
+- [x] G539: replay attempt accounting rejects forged, inflated, foreign, mismatched, pending, accessor-bearing, unknown-option, and tampered-archive inputs without ledger mutation and keeps the backlog first-in-first-out
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempts-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPTS_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPTS_BOUNDARY_OK forgedAttemptRejected=true accessorRejected=true proxyRejected=true mutationRejected=true tamperedRejected=true foreignRejected=true mismatchRejected=true unknownOption
+
+- [x] G540: replay attempt and outcome evidence is retrievable as observed-only structured memory and can inform a fresh process-isolated proposer without restoring artifacts or transferring authority
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempts-memory.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPTS_MEMORY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPTS_MEMORY_OK replayed=replayed-batches-2 adopted=adopted-replays-1 rejected=rejected-replays-1 untested=untested-architectures-1 combined=2 sources=HARNESS_FACTORY_ARCHITECTURE_PROPOS
+
+- [x] G541: replay attempt counts stay advisory: repeated replays cannot mint tested credit, mark the source batch evaluated or adopted, pass as replay input, or replace fresh adoption, holdout, and strict-gain gates
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempts-authority-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPTS_AUTHORITY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPTS_AUTHORITY_BOUNDARY_OK attempts=2 credit=0 sourceEvaluated=false sourceAdopted=false sourceDeployed=false resolved=false forgedRejected=true bridgeRejected=true queueRetained=2 fres

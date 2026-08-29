@@ -2600,6 +2600,7 @@ const HARNESS_FACTORY_PROPOSAL_REPLAY_BENCHMARK_KEYS = objectFreeze([
   'novelProposalCount',
   'proposalArchive',
   'proposalCount',
+  'replayAttemptCount',
   'repeatedProposalCount',
   'untestedFingerprintCount'
 ]);
@@ -2634,11 +2635,14 @@ function factoryProposalReplayResearchAgendaItem({ factory, batch, reason }) {
     || !validHarnessFactoryProposalReplayCounts(batch.untestedFingerprintCount)
     || batch.untestedFingerprintCount
       !== batch.distinctFingerprintCount - batch.convertedFingerprintCount
-    || batch.replayed !== false
+    || !validHarnessFactoryProposalReplayCounts(batch.replayCount)
+    || batch.replayed !== (batch.replayCount > 0)
     || batch.untestedFingerprintCount <= 0
     || batch.status !== HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.UNTESTED
       && batch.status
         !== HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.CONVERTED
+      && batch.status
+        !== HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.REPLAYED
   ) {
     throw new TypeError(
       'Harness Factory proposal replay agenda requires an untested archived proposal batch'
@@ -2662,14 +2666,15 @@ function factoryProposalReplayResearchAgendaItem({ factory, batch, reason }) {
       novelProposalCount: batch.novelProposalCount,
       proposalArchive: archive,
       proposalCount: batch.proposalCount,
+      replayAttemptCount: batch.replayCount,
       repeatedProposalCount: batch.repeatedProposalCount,
       untestedFingerprintCount: batch.untestedFingerprintCount
     }),
     fitness: objectFreeze({
       archivedProposalCount: batch.proposalCount,
-      evaluatedArchitectureCount: 0,
+      evaluatedArchitectureCount: batch.convertedFingerprintCount,
       measured: false,
-      replayed: false,
+      replayed: batch.replayed,
       untestedArchitectureCount: batch.untestedFingerprintCount
     }),
     holdoutStatus: HARNESS_FACTORY_HOLDOUT_STATUSES.NOT_RUN,
@@ -2702,11 +2707,19 @@ function isValidHarnessFactoryProposalReplayResearchAgendaItem(item, factory) {
     && jsonStringify(reflectOwnKeys(benchmark))
       === jsonStringify(HARNESS_FACTORY_PROPOSAL_REPLAY_BENCHMARK_KEYS)
     && sameArchiveLocator(benchmark.proposalArchive, archive)
+    && validHarnessFactoryProposalReplayCounts(benchmark.replayAttemptCount)
     && (
       benchmark.conversionStatus
         === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.UNTESTED
       || benchmark.conversionStatus
         === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.CONVERTED
+      || benchmark.conversionStatus
+        === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.REPLAYED
+    )
+    && (
+      benchmark.conversionStatus
+        !== HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.REPLAYED
+      || benchmark.replayAttemptCount > 0
     )
     && validHarnessFactoryProposalReplayCounts(benchmark.proposalCount)
     && benchmark.proposalCount > 0
@@ -2727,8 +2740,13 @@ function isValidHarnessFactoryProposalReplayResearchAgendaItem(item, factory) {
     && jsonStringify(reflectOwnKeys(fitness))
       === jsonStringify(HARNESS_FACTORY_PROPOSAL_REPLAY_FITNESS_KEYS)
     && fitness.measured === false
-    && fitness.replayed === false
-    && fitness.evaluatedArchitectureCount === 0
+    && fitness.replayed === (benchmark.replayAttemptCount > 0)
+    && fitness.evaluatedArchitectureCount === benchmark.convertedFingerprintCount
+    && (
+      benchmark.conversionStatus
+        !== HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.CONVERTED
+      || benchmark.convertedFingerprintCount > 0
+    )
     && fitness.archivedProposalCount === benchmark.proposalCount
     && fitness.untestedArchitectureCount === benchmark.untestedFingerprintCount
     && item.holdoutStatus === HARNESS_FACTORY_HOLDOUT_STATUSES.NOT_RUN
@@ -2946,7 +2964,7 @@ function factoryResearchAgendaFromHistory({
 
   if (proposalConversion !== null) {
     arrayForEach(proposalConversion.batches, (batch) => {
-      if (batch.replayed !== false || batch.untestedFingerprintCount <= 0) {
+      if (batch.untestedFingerprintCount <= 0) {
         return;
       }
       arrayPush(
@@ -2954,17 +2972,27 @@ function factoryResearchAgendaFromHistory({
         factoryProposalReplayResearchAgendaItem({
           factory,
           batch,
-          reason: 'an archived proposal batch still holds architectures that were never evaluated'
+          reason: batch.replayed
+            ? 'an earlier replay of this archived proposal batch adopted none of its architectures'
+            : 'an archived proposal batch still holds architectures that were never evaluated'
         })
       );
     });
   }
 
+  const replayTarget = HARNESS_FACTORY_RESEARCH_TARGETS.REPLAY_ARCHIVED_PROPOSALS;
   const ranked = arraySort(
     proposed,
     (left, right) => right.priority - left.priority
       || right.generation - left.generation
-      || right.archive.sequence - left.archive.sequence
+      || (
+        left.target === replayTarget && right.target === replayTarget
+          // A capped backlog must not starve the longest-waiting exploration, and a
+          // replay that earned no evidence keeps its place instead of sinking behind
+          // newer arrivals.
+          ? left.archive.sequence - right.archive.sequence
+          : right.archive.sequence - left.archive.sequence
+      )
       || stringLocaleCompare(left.id, right.id)
   );
   const truncated = ranked.length > maxItems;
@@ -9106,6 +9134,7 @@ const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_BATCH_KEYS = objectFreeze
   'distinctFingerprintCount',
   'novelProposalCount',
   'proposalCount',
+  'replayCount',
   'replayed',
   'repeatedProposalCount',
   'status',
@@ -9135,6 +9164,9 @@ function validHarnessFactoryArchitectureProposalConversionBatch(batch) {
     || batch.untestedFingerprintCount
       !== batch.distinctFingerprintCount - batch.convertedFingerprintCount
     || typeof batch.replayed !== 'boolean'
+    || !isSafeInteger(batch.replayCount)
+    || batch.replayCount < 0
+    || batch.replayed !== (batch.replayCount > 0)
     || !arrayIncludes(
       HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUS_VALUES,
       batch.status
@@ -10114,7 +10146,17 @@ export class HarnessFactoryResearchPlanExecutionReport {
     this.executionMethod = plan.executionMethod;
     this.resultType = summary.resultType;
     this.resultStatus = summary.resultStatus;
-    this.targetResolved = summary.targetResolved;
+    // An archived-proposal replay resolves only when the backlog itself stopped
+    // asking for it: a replay that adopted none of its architectures leaves the
+    // batch queued, so the receipt must say the target is still open.
+    this.targetResolved = summary.targetResolved === true
+      && (
+        plan.bridge !== HARNESS_FACTORY_RESEARCH_PLAN_BRIDGES.ARCHIVED_PROPOSAL_REPLAY
+        || !arraySome(
+          factory.researchAgenda().items,
+          (item) => item.id === plan.agendaItemId
+        )
+      );
     this.resultArchiveLocators = summary.resultArchiveLocators;
     this.resultArchiveSequences = summary.resultArchiveSequences;
     this.result = result;
@@ -10471,10 +10513,24 @@ function factoryArchitectureProposalConversionReportFromLedger(ledger, factory) 
   arrayForEach(
     factoryHistoryFromLedger(ledger, factory.factoryId),
     ({ discovery, record }) => {
-      arrayPush(attempts, {
-        fingerprint: discovery.winnerArchitectureFingerprint ?? null,
-        sequence: record.sequence
+      // Every architecture a generation actually evaluated counts as tested, not
+      // only the one that won: an unadopted replay still ran its designs through
+      // production, research, skeptic, and independent replay evaluation.
+      const evaluatedFingerprints = [];
+      arrayForEach(discovery.candidates ?? [], (candidate) => {
+        const fingerprint = candidate?.architectureFingerprint ?? null;
+        if (typeof fingerprint === 'string' && !arrayIncludes(evaluatedFingerprints, fingerprint)) {
+          arrayPush(evaluatedFingerprints, fingerprint);
+          arrayPush(attempts, { fingerprint, sequence: record.sequence });
+        }
       });
+      const winnerFingerprint = discovery.winnerArchitectureFingerprint ?? null;
+      if (
+        typeof winnerFingerprint === 'string'
+        && !arrayIncludes(evaluatedFingerprints, winnerFingerprint)
+      ) {
+        arrayPush(attempts, { fingerprint: winnerFingerprint, sequence: record.sequence });
+      }
       const proposalArchive = discovery.factory?.proposalArchive ?? null;
       if (proposalArchive !== null) {
         arrayPush(replayArchives, proposalArchive);
@@ -10561,10 +10617,11 @@ function factoryArchitectureProposalConversionReportFromLedger(ledger, factory) 
           && attempt.sequence > batch.archive.sequence
       )
     ).length;
-    const replayed = arraySome(
+    const replayCount = arrayFilter(
       replayArchives,
       (locator) => sameArchiveLocator(locator, batch.archive)
-    );
+    ).length;
+    const replayed = replayCount > 0;
     let status = HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.UNTESTED;
     if (replayed) {
       status = HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.REPLAYED;
@@ -10586,6 +10643,7 @@ function factoryArchitectureProposalConversionReportFromLedger(ledger, factory) 
       distinctFingerprintCount: distinct.length,
       novelProposalCount: batch.novelProposalCount,
       proposalCount: batch.proposalCount,
+      replayCount,
       replayed,
       repeatedProposalCount: batch.repeatedProposalCount,
       status,

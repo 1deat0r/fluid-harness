@@ -1124,7 +1124,21 @@ function harnessFactoryArchitectureProposalConversionMemoryEntries(ledger, prefi
       );
     }
     const group = findGroup(factoryId);
-    if (typeof discovery.winnerArchitectureFingerprint === 'string') {
+    const evaluatedFingerprints = [];
+    arrayForEach(discovery.candidates ?? [], (candidate) => {
+      const fingerprint = candidate?.architectureFingerprint ?? null;
+      if (
+        typeof fingerprint === 'string'
+        && !arrayIncludes(evaluatedFingerprints, fingerprint)
+      ) {
+        arrayPush(evaluatedFingerprints, fingerprint);
+        arrayPush(group.attempts, { fingerprint, sequence: record.sequence });
+      }
+    });
+    if (
+      typeof discovery.winnerArchitectureFingerprint === 'string'
+      && !arrayIncludes(evaluatedFingerprints, discovery.winnerArchitectureFingerprint)
+    ) {
       arrayPush(group.attempts, {
         fingerprint: discovery.winnerArchitectureFingerprint,
         sequence: record.sequence
