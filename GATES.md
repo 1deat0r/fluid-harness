@@ -2665,3 +2665,23 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
   CHECK: node scripts/check-harness-factory-architecture-proposal-replay-authority-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_AUTHORITY_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_AUTHORITY_BOUNDARY_OK artifactKeys=0 measured=false advisoryOnlyRecommend=NO_HISTORY freshAdopted=ADOPTED freshDeployed=false sourceEvaluated=false sourceAdopted=false generations=1 postRec
+
+- [x] G533: the Harness Factory can report what each archived proposal batch yielded when replayed, including adoption, unseen-holdout status, attribution, comparator outcome, and downstream measured gain, derived only from verified archives
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-outcome.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_OK batches=5 replayed=4 unreplayed=1 adopted=3 gained=1 unchanged=1 regressed=1 mismatch=1 attributed=3 validated=1 downstreamGains=1 adoptionRate=0.75 gainRate=0.25 outcomes=GAINED
+
+- [x] G534: the replay outcome view rejects forged, proxied, accessor-bearing, untrusted-constructor, sibling-factory, and tampered-archive inputs and stays bounded when the archive overflows
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-outcome-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_BOUNDARY_OK forged=false prototypeRejected=true proxyRejected=true accessorRejected=true classRejected=true tamperedRejected=true frozen=true siblingExcluded=true considered=9 retur
+
+- [x] G535: replay outcomes are retrievable as an observed-only structured-memory source and can inform a fresh process-isolated proposer without restoring artifacts or authority
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-outcome-memory.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_MEMORY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_MEMORY_OK outcomeMatches=1 combinedMatches=4 sources=HARNESS_FACTORY_ARCHITECTURE_PROPOSAL,HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION,HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REP
+
+- [x] G536: replay outcome counts stay advisory and cannot mark the source batch evaluated, substitute for a measured strict gain, or rewrite an earlier replay comparison
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-outcome-authority-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_AUTHORITY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=815fc308d6fc/35 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_AUTHORITY_BOUNDARY_OK sourceEvaluated=false sourceAdopted=false sourceDeployed=false sourceDataOnly=true forgedRejected=true accessorRejected=true bridgeRejected=true strictGainRequ

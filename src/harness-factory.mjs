@@ -89,6 +89,11 @@ export const HARNESS_FACTORY_HOLDOUT_STATUSES = objectFreeze({
   NOT_RUN: 'NOT_RUN',
   PASSED: 'PASSED'
 });
+const HARNESS_FACTORY_HOLDOUT_STATUS_VALUES = objectFreeze([
+  HARNESS_FACTORY_HOLDOUT_STATUSES.FAILED,
+  HARNESS_FACTORY_HOLDOUT_STATUSES.NOT_RUN,
+  HARNESS_FACTORY_HOLDOUT_STATUSES.PASSED
+]);
 export const HARNESS_FACTORY_ARCHITECTURE_ATTEMPT_SOURCES = objectFreeze({
   GENERATION: 'GENERATION',
   IMPROVEMENT_REJECTION: 'IMPROVEMENT_REJECTION'
@@ -109,6 +114,22 @@ const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUS_VALUES = objectFre
   HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.CONVERTED,
   HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.REPLAYED,
   HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.UNTESTED
+]);
+export const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES = objectFreeze({
+  COMPARATOR_MISMATCH: 'COMPARATOR_MISMATCH',
+  GAINED: 'GAINED',
+  NO_COMPARATOR: 'NO_COMPARATOR',
+  NOT_REPLAYED: 'NOT_REPLAYED',
+  REGRESSED: 'REGRESSED',
+  UNCHANGED: 'UNCHANGED'
+});
+const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUS_VALUES = objectFreeze([
+  HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.COMPARATOR_MISMATCH,
+  HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.GAINED,
+  HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.NO_COMPARATOR,
+  HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.NOT_REPLAYED,
+  HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.REGRESSED,
+  HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.UNCHANGED
 ]);
 export const HARNESS_FACTORY_BENCHMARK_VALIDATION_STABILITY_STATUSES = objectFreeze({
   INSUFFICIENT: 'INSUFFICIENT',
@@ -187,6 +208,7 @@ export const MAX_HARNESS_FACTORY_ARCHITECTURE_COVERAGE_ENTRIES = 32;
 export const MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_ENTRIES = 8;
 export const MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_HISTORY_ENTRIES = 32;
 export const MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_ENTRIES = 8;
+export const MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_ENTRIES = 8;
 
 const FACTORY_OPTIONS_KEYS = objectFreeze([
   'factoryId',
@@ -324,7 +346,8 @@ const HARNESS_FACTORY_IMPROVEMENT_MEMORY_SOURCES = objectFreeze([
   'HARNESS_FACTORY_IMPROVEMENT_REJECTION',
   'HARNESS_FACTORY_ARCHITECTURE_COVERAGE',
   'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL',
-  'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION'
+  'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION',
+  'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME'
 ]);
 
 function usesHarnessFactoryImprovementMemory(researchContext) {
@@ -511,6 +534,7 @@ const TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_FACTORIES = weakMapCreate();
 const ARCHIVED_HARNESS_FACTORY_ARCHITECTURE_PROPOSALS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_HISTORIES = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSIONS = weakSetCreate();
+const TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOMES = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARKS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGNS = weakSetCreate();
 const TRUSTED_HARNESS_FACTORY_BENCHMARK_CAMPAIGN_FACTORIES = weakMapCreate();
@@ -9121,7 +9145,12 @@ function validHarnessFactoryArchitectureProposalConversionBatch(batch) {
     )
     || (
       batch.status === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.UNTESTED
-    ) !== (batch.convertedFingerprintCount === 0)
+      && batch.convertedFingerprintCount !== 0
+    )
+    || (
+      batch.status === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.CONVERTED
+      && batch.convertedFingerprintCount === 0
+    )
   ) {
     return false;
   }
@@ -9242,6 +9271,593 @@ export function isTrustedHarnessFactoryArchitectureProposalConversionReport(repo
     && weakSetHas(TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSIONS, report)
     && objectGetPrototypeOf(report)
       === HarnessFactoryArchitectureProposalConversionReport.prototype;
+}
+
+const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_KEYS = objectFreeze([
+  'adopted',
+  'archive',
+  'attributed',
+  'baseline',
+  'baselineGeneration',
+  'deltas',
+  'downstreamGainCount',
+  'downstreamImprovementCount',
+  'fingerprintCount',
+  'generation',
+  'generationArchive',
+  'holdoutStatus',
+  'outcome',
+  'proposalCount',
+  'replayCount',
+  'winnerArchitectureFingerprint'
+]);
+const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_DELTA_KEYS = objectFreeze([
+  'productionProvenRate',
+  'productionSuccessRate',
+  'researchProvenRate',
+  'researchSuccessRate',
+  'skepticSuccessRate',
+  'skepticWeaknessesExposed',
+  'transferSuccessRate'
+]);
+
+function validHarnessFactoryProposalReplayOutcomeDeltas(deltas, outcome) {
+  if (
+    !isPlainObject(deltas)
+    || !hasExactKeys(deltas, HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_DELTA_KEYS)
+  ) {
+    return false;
+  }
+  if (
+    !arrayEvery(
+      HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_DELTA_KEYS,
+      (key) => isFiniteNumber(deltas[key])
+    )
+  ) {
+    return false;
+  }
+  const strictGain = arraySome(
+    HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_DELTA_KEYS,
+    (key) => deltas[key] > 0
+  );
+  const regression = arraySome(
+    HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_DELTA_KEYS,
+    (key) => deltas[key] < 0
+  );
+  if (
+    outcome === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.GAINED
+  ) {
+    return strictGain === true && regression === false;
+  }
+  if (
+    outcome === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.REGRESSED
+  ) {
+    return regression === true;
+  }
+  if (
+    outcome === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.UNCHANGED
+  ) {
+    return strictGain === false && regression === false;
+  }
+  return false;
+}
+
+function validHarnessFactoryArchitectureProposalReplayOutcome(outcome) {
+  if (
+    !isPlainObject(outcome)
+    || !hasExactKeys(outcome, HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_KEYS)
+    || !isValidArchiveLocator(outcome.archive)
+    || outcome.archive.kind !== 'harness-factory-architecture-proposals'
+    || !isSafeInteger(outcome.proposalCount)
+    || outcome.proposalCount <= 0
+    || !isSafeInteger(outcome.fingerprintCount)
+    || outcome.fingerprintCount <= 0
+    || outcome.fingerprintCount > outcome.proposalCount
+    || !arrayIncludes(
+      HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUS_VALUES,
+      outcome.outcome
+    )
+    || !isSafeInteger(outcome.replayCount)
+    || outcome.replayCount < 0
+    || typeof outcome.attributed !== 'boolean'
+    || typeof outcome.adopted !== 'boolean'
+    || !isSafeInteger(outcome.downstreamImprovementCount)
+    || outcome.downstreamImprovementCount < 0
+    || !isSafeInteger(outcome.downstreamGainCount)
+    || outcome.downstreamGainCount < 0
+    || outcome.downstreamGainCount > outcome.downstreamImprovementCount
+    || !arrayIncludes(
+      HARNESS_FACTORY_HOLDOUT_STATUS_VALUES,
+      outcome.holdoutStatus
+    )
+    || (
+      outcome.attributed === true
+      && (
+        typeof outcome.winnerArchitectureFingerprint !== 'string'
+        || stringTrim(outcome.winnerArchitectureFingerprint) === ''
+      )
+    )
+  ) {
+    return false;
+  }
+  if (
+    outcome.outcome === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.NOT_REPLAYED
+  ) {
+    return outcome.replayCount === 0
+      && outcome.adopted === false
+      && outcome.attributed === false
+      && outcome.generation === null
+      && outcome.generationArchive === null
+      && outcome.winnerArchitectureFingerprint === null
+      && outcome.baseline === null
+      && outcome.baselineGeneration === null
+      && outcome.deltas === null
+      && outcome.holdoutStatus === HARNESS_FACTORY_HOLDOUT_STATUSES.NOT_RUN
+      && outcome.downstreamImprovementCount === 0
+      && outcome.downstreamGainCount === 0;
+  }
+  if (
+    outcome.replayCount === 0
+    || !isSafeInteger(outcome.generation)
+    || outcome.generation <= 0
+    || !isValidArchiveLocator(outcome.generationArchive)
+    || outcome.generationArchive.kind !== 'architecture-discovery'
+    || (
+      outcome.winnerArchitectureFingerprint !== null
+      && (
+        typeof outcome.winnerArchitectureFingerprint !== 'string'
+        || stringTrim(outcome.winnerArchitectureFingerprint) === ''
+      )
+    )
+  ) {
+    return false;
+  }
+  if (
+    outcome.outcome === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.NO_COMPARATOR
+  ) {
+    return outcome.baseline === null
+      && outcome.baselineGeneration === null
+      && outcome.deltas === null;
+  }
+  if (
+    !isValidArchiveLocator(outcome.baseline)
+    || outcome.baseline.kind !== 'architecture-discovery'
+    || outcome.baseline.sequence >= outcome.generationArchive.sequence
+    || !isSafeInteger(outcome.baselineGeneration)
+    || outcome.baselineGeneration <= 0
+    || outcome.baselineGeneration >= outcome.generation
+  ) {
+    return false;
+  }
+  if (
+    outcome.outcome
+      === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.COMPARATOR_MISMATCH
+  ) {
+    return outcome.deltas === null;
+  }
+  return validHarnessFactoryProposalReplayOutcomeDeltas(outcome.deltas, outcome.outcome);
+}
+
+export class HarnessFactoryArchitectureProposalReplayOutcomeReport {
+  constructor({
+    factory,
+    consideredBatchCount,
+    unreplayedBatchCount,
+    replayedBatchCount,
+    adoptedReplayCount,
+    rejectedReplayCount,
+    gainedReplayCount,
+    unchangedReplayCount,
+    regressedReplayCount,
+    noComparatorReplayCount,
+    comparatorMismatchReplayCount,
+    attributedReplayCount,
+    validatedReplayCount,
+    pendingValidationReplayCount,
+    downstreamImprovementCount,
+    downstreamGainCount,
+    adoptionRate,
+    gainRate,
+    outcomes,
+    truncated,
+    token
+  }) {
+    if (
+      token !== FACTORY_TOKEN
+      || !isTrustedHarnessFactory(factory)
+      || !isSafeInteger(consideredBatchCount)
+      || consideredBatchCount < 0
+      || !isSafeInteger(unreplayedBatchCount)
+      || unreplayedBatchCount < 0
+      || !isSafeInteger(replayedBatchCount)
+      || replayedBatchCount < 0
+      || !isSafeInteger(adoptedReplayCount)
+      || adoptedReplayCount < 0
+      || !isSafeInteger(rejectedReplayCount)
+      || rejectedReplayCount < 0
+      || !isSafeInteger(gainedReplayCount)
+      || gainedReplayCount < 0
+      || !isSafeInteger(unchangedReplayCount)
+      || unchangedReplayCount < 0
+      || !isSafeInteger(regressedReplayCount)
+      || regressedReplayCount < 0
+      || !isSafeInteger(noComparatorReplayCount)
+      || noComparatorReplayCount < 0
+      || !isSafeInteger(comparatorMismatchReplayCount)
+      || comparatorMismatchReplayCount < 0
+      || !isSafeInteger(attributedReplayCount)
+      || attributedReplayCount < 0
+      || !isSafeInteger(validatedReplayCount)
+      || validatedReplayCount < 0
+      || !isSafeInteger(pendingValidationReplayCount)
+      || pendingValidationReplayCount < 0
+      || !isSafeInteger(downstreamImprovementCount)
+      || downstreamImprovementCount < 0
+      || !isSafeInteger(downstreamGainCount)
+      || downstreamGainCount < 0
+      || !isFiniteNumber(adoptionRate)
+      || adoptionRate < 0
+      || adoptionRate > 1
+      || !isFiniteNumber(gainRate)
+      || gainRate < 0
+      || gainRate > 1
+      || !arrayIsArray(outcomes)
+      || !arrayEvery(
+        outcomes,
+        validHarnessFactoryArchitectureProposalReplayOutcome
+      )
+      || typeof truncated !== 'boolean'
+    ) {
+      throw new TypeError(
+        'Harness Factory proposal replay outcome requires trusted lifecycle evidence'
+      );
+    }
+    if (
+      outcomes.length
+        > MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_ENTRIES
+      || outcomes.length > consideredBatchCount
+      || truncated !== (
+        consideredBatchCount
+          > MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_ENTRIES
+      )
+      || unreplayedBatchCount + replayedBatchCount !== consideredBatchCount
+      || adoptedReplayCount + rejectedReplayCount !== replayedBatchCount
+      || gainedReplayCount
+        + unchangedReplayCount
+        + regressedReplayCount
+        + noComparatorReplayCount
+        + comparatorMismatchReplayCount !== replayedBatchCount
+      || attributedReplayCount > adoptedReplayCount
+      || validatedReplayCount + pendingValidationReplayCount !== adoptedReplayCount
+      || downstreamGainCount > downstreamImprovementCount
+      || (
+        replayedBatchCount === 0
+          ? adoptionRate !== 0
+          : adoptionRate !== adoptedReplayCount / replayedBatchCount
+      )
+      || (
+        replayedBatchCount === 0
+          ? gainRate !== 0
+          : gainRate !== gainedReplayCount / replayedBatchCount
+      )
+    ) {
+      throw new TypeError(
+        'Harness Factory proposal replay outcome counts are inconsistent'
+      );
+    }
+    this.factoryId = factory.factoryId;
+    this.consideredBatchCount = consideredBatchCount;
+    this.returnedOutcomeCount = outcomes.length;
+    this.maxEntries = MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_ENTRIES;
+    this.truncated = truncated;
+    this.complete = truncated === false;
+    this.unreplayedBatchCount = unreplayedBatchCount;
+    this.replayedBatchCount = replayedBatchCount;
+    this.adoptedReplayCount = adoptedReplayCount;
+    this.rejectedReplayCount = rejectedReplayCount;
+    this.gainedReplayCount = gainedReplayCount;
+    this.unchangedReplayCount = unchangedReplayCount;
+    this.regressedReplayCount = regressedReplayCount;
+    this.noComparatorReplayCount = noComparatorReplayCount;
+    this.comparatorMismatchReplayCount = comparatorMismatchReplayCount;
+    this.attributedReplayCount = attributedReplayCount;
+    this.validatedReplayCount = validatedReplayCount;
+    this.pendingValidationReplayCount = pendingValidationReplayCount;
+    this.downstreamImprovementCount = downstreamImprovementCount;
+    this.downstreamGainCount = downstreamGainCount;
+    this.adoptionRate = adoptionRate;
+    this.gainRate = gainRate;
+    this.outcomes = objectFreeze(arrayMap(
+      outcomes,
+      (outcome) => objectFreeze({
+        ...outcome,
+        archive: objectFreeze({ ...outcome.archive }),
+        baseline: outcome.baseline === null ? null : objectFreeze({ ...outcome.baseline }),
+        deltas: outcome.deltas === null ? null : objectFreeze({ ...outcome.deltas }),
+        generationArchive: outcome.generationArchive === null
+          ? null
+          : objectFreeze({ ...outcome.generationArchive })
+      })
+    ));
+    this.dataOnly = true;
+    this.authorityTransferred = false;
+    weakSetAdd(TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOMES, this);
+    objectFreeze(this);
+  }
+}
+
+export function isTrustedHarnessFactoryArchitectureProposalReplayOutcomeReport(report) {
+  return typeof report === 'object'
+    && report !== null
+    && weakSetHas(TRUSTED_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOMES, report)
+    && objectGetPrototypeOf(report)
+      === HarnessFactoryArchitectureProposalReplayOutcomeReport.prototype;
+}
+
+function proposalReplayOutcomeDeltas(baselineFitness, currentFitness) {
+  return objectFreeze({
+    productionProvenRate: currentFitness.productionProvenRate
+      - baselineFitness.productionProvenRate,
+    productionSuccessRate: currentFitness.productionSuccessRate
+      - baselineFitness.productionSuccessRate,
+    researchProvenRate: currentFitness.researchProvenRate
+      - baselineFitness.researchProvenRate,
+    researchSuccessRate: currentFitness.researchSuccessRate
+      - baselineFitness.researchSuccessRate,
+    skepticSuccessRate: currentFitness.skepticSuccessRate
+      - baselineFitness.skepticSuccessRate,
+    skepticWeaknessesExposed: baselineFitness.skepticWeaknessesExposed
+      - currentFitness.skepticWeaknessesExposed,
+    transferSuccessRate: currentFitness.transferSuccessRate
+      - baselineFitness.transferSuccessRate
+  });
+}
+
+function proposalReplayOutcomeOf(deltas) {
+  const strictGain = arraySome(
+    HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_DELTA_KEYS,
+    (key) => deltas[key] > 0
+  );
+  const regression = arraySome(
+    HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_DELTA_KEYS,
+    (key) => deltas[key] < 0
+  );
+  if (regression) {
+    return HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.REGRESSED;
+  }
+  if (strictGain) {
+    return HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.GAINED;
+  }
+  return HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.UNCHANGED;
+}
+
+function factoryArchitectureProposalReplayOutcomeReportFromLedger(ledger, factory) {
+  if (!isTrustedHarnessFactory(factory)) {
+    throw new TypeError(
+      'Harness Factory proposal replay outcome requires an exact trusted factory'
+    );
+  }
+  const archivedBatches = arrayFilter(
+    ledger.restoreHarnessFactoryArchitectureProposals(),
+    (batch) => batch.factoryId === factory.factoryId
+  );
+  const history = factoryHistoryFromLedger(ledger, factory.factoryId);
+  const rejections = arrayFilter(
+    ledger.restoreHarnessFactoryImprovementRejections(),
+    (rejection) => rejection.factoryId === factory.factoryId
+  );
+  const replayPositions = [];
+  arrayForEach(history, (entry, index) => {
+    const proposalArchive = entry.discovery.factory?.proposalArchive ?? null;
+    if (proposalArchive !== null) {
+      arrayPush(replayPositions, { index, proposalArchive });
+    }
+  });
+  const generationImprovements = arrayMap(
+    history,
+    (entry) => entry.discovery.factory?.improvement ?? null
+  );
+
+  const items = [];
+  let unreplayedBatchCount = 0;
+  let replayedBatchCount = 0;
+  let adoptedReplayCount = 0;
+  let rejectedReplayCount = 0;
+  let gainedReplayCount = 0;
+  let unchangedReplayCount = 0;
+  let regressedReplayCount = 0;
+  let noComparatorReplayCount = 0;
+  let comparatorMismatchReplayCount = 0;
+  let attributedReplayCount = 0;
+  let validatedReplayCount = 0;
+  let pendingValidationReplayCount = 0;
+  let downstreamImprovementCount = 0;
+  let downstreamGainCount = 0;
+
+  arrayForEach(archivedBatches, (batch) => {
+    const fingerprints = [];
+    arrayForEach(batch.proposals, (proposal) => {
+      const fingerprint = proposal.architectureFingerprint;
+      if (
+        typeof fingerprint === 'string'
+        && stringTrim(fingerprint) !== ''
+        && !arrayIncludes(fingerprints, fingerprint)
+      ) {
+        arrayPush(fingerprints, fingerprint);
+      }
+    });
+    const replayIndexes = [];
+    arrayForEach(replayPositions, ({ index, proposalArchive }) => {
+      if (sameArchiveLocator(proposalArchive, batch.archive)) {
+        arrayPush(replayIndexes, index);
+      }
+    });
+    const batchArchive = archiveLocator({
+      kind: batch.archive.kind,
+      sequence: batch.archive.sequence,
+      hash: batch.archive.hash
+    });
+    if (replayIndexes.length === 0) {
+      unreplayedBatchCount += 1;
+      arrayPush(items, objectFreeze({
+        adopted: false,
+        archive: batchArchive,
+        attributed: false,
+        baseline: null,
+        baselineGeneration: null,
+        deltas: null,
+        downstreamGainCount: 0,
+        downstreamImprovementCount: 0,
+        fingerprintCount: fingerprints.length,
+        generation: null,
+        generationArchive: null,
+        holdoutStatus: HARNESS_FACTORY_HOLDOUT_STATUSES.NOT_RUN,
+        outcome: HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.NOT_REPLAYED,
+        proposalCount: batch.proposalCount,
+        replayCount: 0,
+        winnerArchitectureFingerprint: null
+      }));
+      return;
+    }
+
+    replayedBatchCount += 1;
+    const replayIndex = replayIndexes[replayIndexes.length - 1];
+    const replayEntry = history[replayIndex];
+    const replayMetadata = replayEntry.discovery.factory;
+    const replayRecordSequence = replayEntry.record.sequence;
+    const winnerArchitectureFingerprint
+      = replayEntry.discovery.winnerArchitectureFingerprint ?? null;
+    const adopted = replayMetadata.status === HARNESS_FACTORY_STATUSES.ADOPTED;
+    const holdoutStatus = factoryHoldoutStatus(replayMetadata);
+    const attributed = adopted
+      && typeof winnerArchitectureFingerprint === 'string'
+      && arrayIncludes(fingerprints, winnerArchitectureFingerprint);
+    if (adopted) {
+      adoptedReplayCount += 1;
+      if (attributed) {
+        attributedReplayCount += 1;
+      }
+      if (holdoutStatus === HARNESS_FACTORY_HOLDOUT_STATUSES.PASSED) {
+        validatedReplayCount += 1;
+      } else {
+        pendingValidationReplayCount += 1;
+      }
+    } else {
+      rejectedReplayCount += 1;
+    }
+
+    let downstreamAttempts = 0;
+    let downstreamGains = 0;
+    arrayForEach(generationImprovements, (improvement) => {
+      if (improvement !== null && improvement.baselineSequence === replayRecordSequence) {
+        downstreamAttempts += 1;
+        if (improvement.accepted === true) {
+          downstreamGains += 1;
+        }
+      }
+    });
+    arrayForEach(rejections, (rejection) => {
+      if (rejection.baseline.archive.sequence === replayRecordSequence) {
+        downstreamAttempts += 1;
+      }
+    });
+    downstreamImprovementCount += downstreamAttempts;
+    downstreamGainCount += downstreamGains;
+
+    const predecessorLocator = replayMetadata.predecessor ?? null;
+    const baselineEntry = replayIndex > 0 ? history[replayIndex - 1] : undefined;
+    const hasBaseline = predecessorLocator !== null
+      && baselineEntry !== undefined
+      && sameArchiveLocator(predecessorLocator, archiveLocator(baselineEntry.record));
+    let outcome = HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.NO_COMPARATOR;
+    let baseline = null;
+    let baselineGeneration = null;
+    let deltas = null;
+    if (!hasBaseline) {
+      noComparatorReplayCount += 1;
+    } else {
+      baseline = archiveLocator(baselineEntry.record);
+      baselineGeneration = baselineEntry.discovery.factory.generation;
+      if (
+        !sameFactoryBenchmarkIdentity(
+          baselineEntry.discovery.factory?.benchmark ?? null,
+          replayMetadata.benchmark ?? null
+        )
+      ) {
+        outcome = HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES
+          .COMPARATOR_MISMATCH;
+        comparatorMismatchReplayCount += 1;
+      } else {
+        deltas = proposalReplayOutcomeDeltas(
+          factoryFitnessForDiscovery(baselineEntry.discovery),
+          factoryFitnessForDiscovery(replayEntry.discovery)
+        );
+        outcome = proposalReplayOutcomeOf(deltas);
+        if (
+          outcome === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.GAINED
+        ) {
+          gainedReplayCount += 1;
+        } else if (
+          outcome === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES.REGRESSED
+        ) {
+          regressedReplayCount += 1;
+        } else {
+          unchangedReplayCount += 1;
+        }
+      }
+    }
+
+    arrayPush(items, objectFreeze({
+      adopted,
+      archive: batchArchive,
+      attributed,
+      baseline,
+      baselineGeneration,
+      deltas,
+      downstreamGainCount: downstreamGains,
+      downstreamImprovementCount: downstreamAttempts,
+      fingerprintCount: fingerprints.length,
+      generation: replayMetadata.generation,
+      generationArchive: archiveLocator(replayEntry.record),
+      holdoutStatus,
+      outcome,
+      proposalCount: batch.proposalCount,
+      replayCount: replayIndexes.length,
+      winnerArchitectureFingerprint
+    }));
+  });
+
+  const truncated = items.length
+    > MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_ENTRIES;
+  const returnedOutcomes = truncated
+    ? arraySlice(
+      items,
+      items.length - MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_ENTRIES
+    )
+    : items;
+  return new HarnessFactoryArchitectureProposalReplayOutcomeReport({
+    factory,
+    consideredBatchCount: items.length,
+    unreplayedBatchCount,
+    replayedBatchCount,
+    adoptedReplayCount,
+    rejectedReplayCount,
+    gainedReplayCount,
+    unchangedReplayCount,
+    regressedReplayCount,
+    noComparatorReplayCount,
+    comparatorMismatchReplayCount,
+    attributedReplayCount,
+    validatedReplayCount,
+    pendingValidationReplayCount,
+    downstreamImprovementCount,
+    downstreamGainCount,
+    adoptionRate: replayedBatchCount === 0 ? 0 : adoptedReplayCount / replayedBatchCount,
+    gainRate: replayedBatchCount === 0 ? 0 : gainedReplayCount / replayedBatchCount,
+    outcomes: returnedOutcomes,
+    truncated,
+    token: FACTORY_TOKEN
+  });
 }
 
 export class HarnessFactoryReport {
@@ -10270,7 +10886,8 @@ export class HarnessFactory {
         + 'HARNESS_FACTORY_IMPROVEMENT_REJECTION source, or '
         + 'HARNESS_FACTORY_ARCHITECTURE_COVERAGE source, or '
         + 'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL source, or '
-        + 'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION source'
+        + 'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION source, or '
+        + 'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME source'
       );
     }
     if (requestedMemorySources !== null) {
@@ -10451,6 +11068,17 @@ export class HarnessFactory {
     }
     const historicalLedger = verifiedLedgerSnapshot(this.ledger);
     return factoryArchitectureProposalConversionReportFromLedger(
+      historicalLedger,
+      this
+    );
+  }
+
+  architectureProposalReplayOutcomes() {
+    if (!isTrustedHarnessFactory(this)) {
+      throw new TypeError('Harness Factory requires an exact trusted factory');
+    }
+    const historicalLedger = verifiedLedgerSnapshot(this.ledger);
+    return factoryArchitectureProposalReplayOutcomeReportFromLedger(
       historicalLedger,
       this
     );

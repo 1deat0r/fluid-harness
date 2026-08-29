@@ -58,6 +58,7 @@ export const MEMORY_SOURCES = objectFreeze({
   HARNESS_FACTORY_ARCHITECTURE_COVERAGE: 'HARNESS_FACTORY_ARCHITECTURE_COVERAGE',
   HARNESS_FACTORY_ARCHITECTURE_PROPOSAL: 'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL',
   HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION: 'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION',
+  HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME: 'HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME',
   COORDINATION: 'COORDINATION',
   DISTRIBUTION_SHIFT: 'DISTRIBUTION_SHIFT',
   ENSEMBLE: 'ENSEMBLE',
@@ -1261,6 +1262,208 @@ function harnessFactoryArchitectureProposalConversionMemoryEntries(ledger, prefi
   });
 }
 
+function harnessFactoryArchitectureProposalReplayOutcomeMemoryEntries(ledger, prefix) {
+  const proposalBatches = ledger.restoreHarnessFactoryArchitectureProposals();
+  const proposalRecords = ledgerRecordsOfKind(
+    ledger,
+    'harness-factory-architecture-proposals'
+  );
+  const discoveries = ledger.restoreArchitectureDiscoveries();
+  const discoveryRecords = ledgerRecordsOfKind(ledger, 'architecture-discovery');
+  const improvementRejections = ledger.restoreHarnessFactoryImprovementRejections();
+  const groups = [];
+  const findGroup = (factoryId) => {
+    let group = arrayFind(
+      groups,
+      (candidate) => candidate.factoryId === factoryId
+    );
+    if (group === undefined) {
+      group = {
+        adoptedReplayCount: 0,
+        attributedReplayCount: 0,
+        batchCount: 0,
+        downstreamGainCount: 0,
+        downstreamImprovementCount: 0,
+        factoryId,
+        latestRecord: null,
+        pendingValidationReplayCount: 0,
+        replayedBatchCount: 0,
+        replays: [],
+        rejectedReplayCount: 0,
+        validatedReplayCount: 0
+      };
+      arrayPush(groups, group);
+    }
+    return group;
+  };
+  const rememberRecord = (group, record) => {
+    if (
+      record !== undefined
+      && (group.latestRecord === null || record.sequence > group.latestRecord.sequence)
+    ) {
+      group.latestRecord = record;
+    }
+  };
+  const sameBatchLocator = (replay, batchArchive) =>
+    replay.batchSequence === batchArchive.sequence
+      && replay.batchHash === batchArchive.hash;
+  arrayForEach(discoveries, (discovery, index) => {
+    const factoryId = discovery.factory?.factoryId ?? null;
+    const proposalArchive = discovery.factory?.proposalArchive ?? null;
+    if (factoryId === null || proposalArchive === null) {
+      return;
+    }
+    const record = discoveryRecords[index];
+    if (record === undefined) {
+      throw new Error(
+        'Structured memory proposal replay outcome discovery order is inconsistent'
+      );
+    }
+    const group = findGroup(factoryId);
+    const holdout = discovery.factory?.holdout ?? null;
+    arrayPush(group.replays, {
+      adopted: discovery.factory?.status === 'ADOPTED',
+      batchHash: proposalArchive.hash,
+      batchSequence: proposalArchive.sequence,
+      holdoutPassed: holdout !== null && holdout.passed === true,
+      holdoutRun: holdout !== null,
+      sequence: record.sequence,
+      winnerArchitectureFingerprint: discovery.winnerArchitectureFingerprint ?? null
+    });
+    rememberRecord(group, record);
+  });
+  arrayForEach(proposalBatches, (batch, batchIndex) => {
+    const record = proposalRecords[batchIndex];
+    if (
+      record === undefined
+      || record.sequence !== batch.archive.sequence
+      || record.hash !== batch.archive.hash
+    ) {
+      throw new Error(
+        'Structured memory proposal replay outcome batch order is inconsistent'
+      );
+    }
+    const group = findGroup(batch.factoryId);
+    group.batchCount += 1;
+    rememberRecord(group, record);
+    const fingerprints = [];
+    arrayForEach(batch.proposals, (proposal) => {
+      const fingerprint = proposal.architectureFingerprint;
+      if (typeof fingerprint === 'string' && !arrayIncludes(fingerprints, fingerprint)) {
+        arrayPush(fingerprints, fingerprint);
+      }
+    });
+    const replays = arrayFilter(
+      group.replays,
+      (replay) => sameBatchLocator(replay, batch.archive)
+    );
+    if (replays.length === 0) {
+      return;
+    }
+    group.replayedBatchCount += 1;
+    arrayForEach(replays, (replay) => {
+      if (!replay.adopted) {
+        group.rejectedReplayCount += 1;
+        return;
+      }
+      group.adoptedReplayCount += 1;
+      if (
+        typeof replay.winnerArchitectureFingerprint === 'string'
+        && arrayIncludes(fingerprints, replay.winnerArchitectureFingerprint)
+      ) {
+        group.attributedReplayCount += 1;
+      }
+      if (replay.holdoutRun && replay.holdoutPassed) {
+        group.validatedReplayCount += 1;
+      } else {
+        group.pendingValidationReplayCount += 1;
+      }
+    });
+  });
+  arrayForEach(discoveries, (discovery) => {
+    const factoryId = discovery.factory?.factoryId ?? null;
+    const improvement = discovery.factory?.improvement ?? null;
+    if (factoryId === null || improvement === null) {
+      return;
+    }
+    const group = findGroup(factoryId);
+    const replay = arrayFind(
+      group.replays,
+      (candidate) => candidate.sequence === improvement.baselineSequence
+    );
+    if (replay === undefined) {
+      return;
+    }
+    group.downstreamImprovementCount += 1;
+    if (improvement.accepted === true) {
+      group.downstreamGainCount += 1;
+    }
+  });
+  arrayForEach(improvementRejections, (rejection) => {
+    const group = arrayFind(
+      groups,
+      (candidate) => candidate.factoryId === rejection.factoryId
+    );
+    if (group === undefined) {
+      return;
+    }
+    const baselineSequence = rejection.baseline?.archive?.sequence ?? null;
+    const replay = arrayFind(
+      group.replays,
+      (candidate) => candidate.sequence === baselineSequence
+    );
+    if (replay !== undefined) {
+      group.downstreamImprovementCount += 1;
+    }
+  });
+  const replayGroups = arrayFilter(
+    groups,
+    (group) => group.replayedBatchCount > 0 && group.latestRecord !== null
+  );
+  return arrayMap(replayGroups, (group, index) => {
+    const keywords = [
+      'harness-factory-proposal-replay-outcome',
+      `archived-batches-${group.batchCount}`,
+      `replayed-batches-${group.replayedBatchCount}`,
+      `unreplayed-batches-${group.batchCount - group.replayedBatchCount}`,
+      `adopted-replays-${group.adoptedReplayCount}`,
+      `rejected-replays-${group.rejectedReplayCount}`,
+      `attributed-replays-${group.attributedReplayCount}`,
+      `validated-replays-${group.validatedReplayCount}`,
+      `pending-validation-replays-${group.pendingValidationReplayCount}`,
+      `downstream-improvements-${group.downstreamImprovementCount}`,
+      `downstream-gains-${group.downstreamGainCount}`
+    ];
+    const addKeyword = (keyword) => {
+      if (
+        typeof keyword === 'string'
+        && keyword.length <= MAX_STRUCTURED_MEMORY_KEYWORD_LENGTH
+        && keywords.length < MAX_STRUCTURED_MEMORY_KEYWORDS
+        && !arrayIncludes(keywords, keyword)
+      ) {
+        arrayPush(keywords, keyword);
+      }
+    };
+    addKeyword(`factory-${group.factoryId}`);
+    return new StructuredMemoryEntry({
+      id: `${prefix}:harness-factory-proposal-replay-outcome:${index}`,
+      taskId: isSafeInteger(group.latestRecord?.sequence)
+        ? `harness-factory-proposal-replay-outcome:${group.latestRecord.sequence}`
+        : `harness-factory-proposal-replay-outcome:${index}`,
+      description: `Historical Harness Factory proposal replay outcomes across ${group.replayedBatchCount} replayed batches`,
+      strategyKey: 'harness-factory-proposal-replay-outcome',
+      evidence: EVIDENCE_LEVELS.OBSERVED,
+      surpriseBand: SURPRISE_BANDS.LOW,
+      surpriseNats: 0,
+      predictionError: false,
+      actionNumber: null,
+      source: MEMORY_SOURCES.HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME,
+      keywords,
+      provenance: provenanceForLedgerRecord(group.latestRecord)
+    });
+  });
+}
+
 function harnessFactoryArchitectureCoverageMemoryEntries(ledger, prefix) {
   const discoveries = ledger.restoreArchitectureDiscoveries();
   const discoveryRecords = ledgerRecordsOfKind(ledger, 'architecture-discovery');
@@ -1927,6 +2130,8 @@ export class BoundedStructuredMemory {
       harnessFactoryArchitectureCoverageMemoryEntries(ledger, prefix);
     const proposalConversionMemoryEntries =
       harnessFactoryArchitectureProposalConversionMemoryEntries(ledger, prefix);
+    const proposalReplayOutcomeMemoryEntries =
+      harnessFactoryArchitectureProposalReplayOutcomeMemoryEntries(ledger, prefix);
     const benchmarkFrontierValidationMemoryEntries = [];
     arrayForEach(benchmarkCampaigns, (campaign, campaignIndex) => {
       const relatedValidations = arrayFilter(
@@ -2027,6 +2232,7 @@ export class BoundedStructuredMemory {
       + architectureProposalMemoryEntries.length
       + architectureCoverageMemoryEntries.length
       + proposalConversionMemoryEntries.length
+      + proposalReplayOutcomeMemoryEntries.length
       + benchmarkFrontierValidationMemoryEntries.length
       + benchmarkFrontierValidationStabilityMemoryEntries.length
       + coordinations.length
@@ -2103,6 +2309,9 @@ export class BoundedStructuredMemory {
       arrayPush(entries, entry);
     });
     arrayForEach(proposalConversionMemoryEntries, (entry) => {
+      arrayPush(entries, entry);
+    });
+    arrayForEach(proposalReplayOutcomeMemoryEntries, (entry) => {
       arrayPush(entries, entry);
     });
     arrayForEach(benchmarkFrontierValidationMemoryEntries, (entry) => {
