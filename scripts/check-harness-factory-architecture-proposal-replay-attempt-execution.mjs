@@ -106,9 +106,14 @@ assert.equal(
   factory.researchPlanExecutions().executions.filter(
     (execution) => execution.targetResolved === false
   ).length,
-  3
+  2
+);
+assert.equal(
+  factory.researchPlanExecutions().executions[2].targetResolved,
+  true
 );
 assert.equal(factory.architectureProposalConversion().batches[0].replayCount, 3);
+assert.equal(factory.architectureProposalConversion().batches[0].status, 'EXHAUSTED');
 assert.equal(factory.architectureProposalReplayOutcomes().adoptedReplayCount, 0);
 assert.equal(ledger.verify(), true);
 
@@ -120,6 +125,6 @@ console.log(
   + `distinctGenerations=${new Set(factory.researchPlanExecutions().executions.flatMap((execution) => execution.resultArchiveSequences)).size} `
   + `replayCount=${factory.architectureProposalConversion().batches[0].replayCount} `
   + `adopted=${factory.architectureProposalReplayOutcomes().adoptedReplayCount} `
-  + `queueStatus=${factory.researchAgenda().items.find((item) => item.target === REPLAY).benchmark.conversionStatus} `
+  + `queueStatus=${factory.architectureProposalConversion().batches[0].status} `
   + `generations=${factory.history().generations.length} ledgerEntries=${ledger.length} verify=${ledger.verify()}`
 );

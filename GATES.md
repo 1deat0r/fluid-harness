@@ -9,7 +9,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=ℹ duration_ms 250.497772 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=ℹ duration_ms 259.447782 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -19,7 +19,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_SOURCE_OK files=562 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_SOURCE_OK files=568 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -44,7 +44,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.024},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.275},{"
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.169},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.262},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2694,7 +2694,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G538: a re-queued proposal batch can be dispatched again through the same replay plan and receipt, each attempt archives its own generation, and the receipt reports the target unresolved until the backlog itself retires
   CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempt-execution.mjs
   EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_EXECUTION_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_EXECUTION_OK firstResolved=false firstStatus=REJECTED attempts=3 sameItem=true distinctGenerations=3 replayCount=3 adopted=0 queueStatus=REPLAYED generations=3 ledgerEntries=7 verif
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_EXECUTION_OK firstResolved=false firstStatus=REJECTED attempts=3 sameItem=true distinctGenerations=3 replayCount=3 adopted=0 queueStatus=EXHAUSTED generations=3 ledgerEntries=7 veri
 
 - [x] G539: replay attempt accounting rejects forged, inflated, foreign, mismatched, pending, accessor-bearing, unknown-option, and tampered-archive inputs without ledger mutation and preserves deterministic replay ordering
   CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempts-boundary.mjs
@@ -2730,3 +2730,28 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
   CHECK: node scripts/check-harness-factory-architecture-proposal-replay-fairness-authority-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_FAIRNESS_AUTHORITY_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_FAIRNESS_AUTHORITY_BOUNDARY_OK sourceEvaluated=false sourceAdopted=false sourceDeployed=false converted=0 untested=1 retained=true artifactsSuppressed=true dataOnly=true authorityTransferre
+
+- [x] G546: an archived proposal batch receives at most three fresh replay attempts, the third failed receipt resolves the queue target as exhausted, and a fourth attempt is rejected before ledger mutation
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-exhaustion.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_OK limit=3 receipts=3 resolved=false+false+true status=EXHAUSTED remaining=0 fourthRejected=true ledgerAtomic=true ledgerEntries=7 verify=true
+
+- [x] G547: exhausted replay work leaves the fair agenda without blocking untouched or retryable batches, while stable identities and attempt ordering remain deterministic
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-exhaustion-fairness.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_FAIRNESS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_FAIRNESS_OK exhausted=1 queued=3>2 attempts=0+1 stableIds=true cappedFirst=3 ledgerEntries=7 verify=true
+
+- [x] G548: proposal conversion reports expose frozen per-batch retry limits, remaining attempts, exhaustion status, and exact aggregate exhaustion counts from verified archives
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-exhaustion-report.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_REPORT_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_REPORT_OK limit=3 status=EXHAUSTED remaining=0 exhausted=1 considered=10 returned=8 truncated=true roundTrip=true frozen=true verify=true
+
+- [x] G549: replay exhaustion is retrievable as observed-only structured memory with bounded count and limit keywords for a fresh proposer
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-exhaustion-memory.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_MEMORY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_MEMORY_OK matches=1 exhausted=exhausted-batches-1 limit=replay-attempt-limit-3 evidence=OBSERVED freshProposer=true historicalOnly=true dataOnly=true authorityTransferred=false v
+
+- [x] G550: replay exhaustion rejects forged limits, counts, statuses, stale plans, foreign and accessor-bearing inputs, and tampered archives without minting evaluation, adoption, proof, or authority
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-exhaustion-authority-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_AUTHORITY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_AUTHORITY_BOUNDARY_OK forgedLimitRejected=true forgedCountRejected=true forgedStatusRejected=true stalePlanRejected=true foreignRejected=true accessorRejected=true tamperedReject

@@ -34,6 +34,9 @@ import {
   isTrustedEvaluationBudget
 } from './evaluation.mjs';
 import {
+  MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS
+} from './harness-factory-limits.mjs';
+import {
   buildStructuredMemoryContext,
   isTrustedStructuredMemoryContext,
   MAX_STRUCTURED_MEMORY_ENTRIES,
@@ -107,14 +110,18 @@ export const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_STATUSES = objectFreeze({
 });
 export const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES = objectFreeze({
   CONVERTED: 'CONVERTED',
+  EXHAUSTED: 'EXHAUSTED',
   REPLAYED: 'REPLAYED',
   UNTESTED: 'UNTESTED'
 });
 const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUS_VALUES = objectFreeze([
   HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.CONVERTED,
+  HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.EXHAUSTED,
   HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.REPLAYED,
   HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.UNTESTED
 ]);
+
+export { MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS };
 export const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_STATUSES = objectFreeze({
   COMPARATOR_MISMATCH: 'COMPARATOR_MISMATCH',
   GAINED: 'GAINED',
@@ -2964,7 +2971,10 @@ function factoryResearchAgendaFromHistory({
 
   if (proposalConversion !== null) {
     arrayForEach(proposalConversion.batches, (batch) => {
-      if (batch.untestedFingerprintCount <= 0) {
+      if (
+        batch.untestedFingerprintCount <= 0
+        || batch.replayExhausted === true
+      ) {
         return;
       }
       arrayPush(
@@ -9135,7 +9145,10 @@ const HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_BATCH_KEYS = objectFreeze
   'distinctFingerprintCount',
   'novelProposalCount',
   'proposalCount',
+  'replayAttemptLimit',
+  'replayAttemptsRemaining',
   'replayCount',
+  'replayExhausted',
   'replayed',
   'repeatedProposalCount',
   'status',
@@ -9167,14 +9180,31 @@ function validHarnessFactoryArchitectureProposalConversionBatch(batch) {
     || typeof batch.replayed !== 'boolean'
     || !isSafeInteger(batch.replayCount)
     || batch.replayCount < 0
+    || batch.replayAttemptLimit
+      !== MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS
+    || !isSafeInteger(batch.replayAttemptsRemaining)
+    || batch.replayAttemptsRemaining !== (
+      batch.replayCount >= MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS
+        ? 0
+        : MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS - batch.replayCount
+    )
+    || typeof batch.replayExhausted !== 'boolean'
+    || batch.replayExhausted !== (
+      batch.replayCount >= MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS
+        && batch.untestedFingerprintCount > 0
+    )
     || batch.replayed !== (batch.replayCount > 0)
     || !arrayIncludes(
       HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUS_VALUES,
       batch.status
     )
     || batch.replayed !== (
-      batch.status
-        === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.REPLAYED
+      batch.status === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.REPLAYED
+        || batch.status
+          === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.EXHAUSTED
+    )
+    || batch.replayExhausted !== (
+      batch.status === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.EXHAUSTED
     )
     || (
       batch.status === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.UNTESTED
@@ -9201,6 +9231,7 @@ export class HarnessFactoryArchitectureProposalConversionReport {
     untestedFingerprintCount,
     conversionRate,
     replayedBatchCount,
+    exhaustedBatchCount,
     convertedBatchCount,
     untestedBatchCount,
     batches,
@@ -9227,6 +9258,8 @@ export class HarnessFactoryArchitectureProposalConversionReport {
       || conversionRate > 1
       || !isSafeInteger(replayedBatchCount)
       || replayedBatchCount < 0
+      || !isSafeInteger(exhaustedBatchCount)
+      || exhaustedBatchCount < 0
       || !isSafeInteger(convertedBatchCount)
       || convertedBatchCount < 0
       || !isSafeInteger(untestedBatchCount)
@@ -9282,6 +9315,8 @@ export class HarnessFactoryArchitectureProposalConversionReport {
     this.untestedFingerprintCount = untestedFingerprintCount;
     this.conversionRate = conversionRate;
     this.replayedBatchCount = replayedBatchCount;
+    this.exhaustedBatchCount = exhaustedBatchCount;
+    this.replayAttemptLimit = MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS;
     this.convertedBatchCount = convertedBatchCount;
     this.untestedBatchCount = untestedBatchCount;
     this.batches = objectFreeze(arrayMap(
@@ -10599,6 +10634,7 @@ function factoryArchitectureProposalConversionReportFromLedger(ledger, factory) 
   });
 
   let replayedBatchCount = 0;
+  let exhaustedBatchCount = 0;
   let convertedBatchCount = 0;
   let untestedBatchCount = 0;
   let archivedProposalCount = 0;
@@ -10623,10 +10659,20 @@ function factoryArchitectureProposalConversionReportFromLedger(ledger, factory) 
       (locator) => sameArchiveLocator(locator, batch.archive)
     ).length;
     const replayed = replayCount > 0;
+    const untestedFingerprintCount = distinct.length - batchConvertedFingerprintCount;
     let status = HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.UNTESTED;
     if (replayed) {
-      status = HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.REPLAYED;
-      replayedBatchCount += 1;
+      if (
+        replayCount >= MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS
+        && untestedFingerprintCount > 0
+      ) {
+        status = HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.EXHAUSTED;
+        exhaustedBatchCount += 1;
+        replayedBatchCount += 1;
+      } else {
+        status = HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.REPLAYED;
+        replayedBatchCount += 1;
+      }
     } else if (batchConvertedFingerprintCount > 0) {
       status = HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.CONVERTED;
       convertedBatchCount += 1;
@@ -10644,11 +10690,17 @@ function factoryArchitectureProposalConversionReportFromLedger(ledger, factory) 
       distinctFingerprintCount: distinct.length,
       novelProposalCount: batch.novelProposalCount,
       proposalCount: batch.proposalCount,
+      replayAttemptLimit: MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS,
+      replayAttemptsRemaining: replayCount >= MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS
+        ? 0
+        : MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS - replayCount,
       replayCount,
+      replayExhausted: status
+        === HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_CONVERSION_STATUSES.EXHAUSTED,
       replayed,
       repeatedProposalCount: batch.repeatedProposalCount,
       status,
-      untestedFingerprintCount: distinct.length - batchConvertedFingerprintCount
+      untestedFingerprintCount
     }));
   });
 
@@ -10674,12 +10726,24 @@ function factoryArchitectureProposalConversionReportFromLedger(ledger, factory) 
       ? 0
       : convertedFingerprintCount / archivedFingerprintCount,
     replayedBatchCount,
+    exhaustedBatchCount,
     convertedBatchCount,
     untestedBatchCount,
     batches: returnedBatches,
     truncated,
     token: FACTORY_TOKEN
   });
+}
+
+function factoryArchivedProposalReplayCount(ledger, factoryId, archive) {
+  return arrayFilter(
+    factoryHistoryFromLedger(ledger, factoryId),
+    ({ discovery }) => {
+      const proposalArchive = discovery.factory?.proposalArchive ?? null;
+      return proposalArchive !== null
+        && sameArchiveLocator(proposalArchive, archive);
+    }
+  ).length;
 }
 
 export class HarnessFactory {
@@ -10725,6 +10789,18 @@ export class HarnessFactory {
       proposalReport,
       historicalLedger
     );
+    const replayCount = factoryArchivedProposalReplayCount(
+      historicalLedger,
+      this.factoryId,
+      archived.archive
+    );
+    if (
+      replayCount >= MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS
+    ) {
+      throw new RangeError(
+        'Harness Factory archived-proposal replay attempt limit is exhausted'
+      );
+    }
     const normalizedGoal = options.goal === undefined
       ? archived.report.goal
       : requireNonEmptyString(options.goal, 'Harness Factory archived-proposal goal');

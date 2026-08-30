@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 import { EVIDENCE_LEVELS } from './evidence.mjs';
 import {
+  MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS
+} from './harness-factory-limits.mjs';
+import {
   isTrustedAgentPlanner
 } from './agent-plan.mjs';
 import { isTrustedAgentRunReport } from './agent.mjs';
@@ -1101,6 +1104,7 @@ function harnessFactoryArchitectureProposalConversionMemoryEntries(ledger, prefi
         archived: [],
         attempts: [],
         batchCount: 0,
+        exhaustedBatchCount: 0,
         factoryId,
         latestRecord: null,
         proposalCount: 0,
@@ -1203,11 +1207,12 @@ function harnessFactoryArchitectureProposalConversionMemoryEntries(ledger, prefi
         existing.firstArchiveSequence = batch.archive.sequence;
       }
     });
-    const replayed = arraySome(
+    const replayCount = arrayFilter(
       group.replays,
       (locator) => locator.sequence === batch.archive.sequence
         && locator.hash === batch.archive.hash
-    );
+    ).length;
+    const replayed = replayCount > 0;
     const converted = arrayFilter(
       distinct,
       (fingerprint) => arraySome(
@@ -1218,6 +1223,12 @@ function harnessFactoryArchitectureProposalConversionMemoryEntries(ledger, prefi
     ).length;
     if (replayed) {
       group.replayedBatchCount += 1;
+    }
+    if (
+      replayCount >= MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS
+      && converted < distinct.length
+    ) {
+      group.exhaustedBatchCount += 1;
     }
     if (replayed === false && converted === 0) {
       group.untestedBatchCount += 1;
@@ -1244,6 +1255,8 @@ function harnessFactoryArchitectureProposalConversionMemoryEntries(ledger, prefi
       `converted-architectures-${convertedArchitectures}`,
       `untested-architectures-${group.archived.length - convertedArchitectures}`,
       `replayed-batches-${group.replayedBatchCount}`,
+      `exhausted-batches-${group.exhaustedBatchCount}`,
+      `replay-attempt-limit-${MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS}`,
       `untested-batches-${group.untestedBatchCount}`
     ];
     const addKeyword = (keyword) => {
