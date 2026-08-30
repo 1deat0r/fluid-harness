@@ -58,7 +58,7 @@ assert.equal(item.archive.sequence, otherBatch.archive.sequence);
 assert.equal(
   agenda.items.filter((candidate) => candidate.target === REPLAY)[0].archive.sequence,
   batch.archive.sequence,
-  'the replay backlog waits first-in-first-out'
+  'equally unattempted replay work uses archive-age FIFO order'
 );
 const validOptions = {
   proposalReport: otherBatch,

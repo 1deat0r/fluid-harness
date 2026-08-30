@@ -2987,10 +2987,11 @@ function factoryResearchAgendaFromHistory({
       || right.generation - left.generation
       || (
         left.target === replayTarget && right.target === replayTarget
-          // A capped backlog must not starve the longest-waiting exploration, and a
-          // replay that earned no evidence keeps its place instead of sinking behind
-          // newer arrivals.
-          ? left.archive.sequence - right.archive.sequence
+          // Give every unfinished exploration a turn before retrying one that has
+          // already failed. Within the same attempt stratum, preserve FIFO order so
+          // the schedule is deterministic and an older peer cannot be starved.
+          ? left.benchmark.replayAttemptCount - right.benchmark.replayAttemptCount
+            || left.archive.sequence - right.archive.sequence
           : right.archive.sequence - left.archive.sequence
       )
       || stringLocaleCompare(left.id, right.id)

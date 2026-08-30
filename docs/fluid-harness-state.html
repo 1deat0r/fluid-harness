@@ -648,7 +648,7 @@
 
     <section class="hero" aria-labelledby="page-title">
       <div class="hero-copy">
-        <div class="eyebrow">Current state · 27 August 2026</div>
+        <div class="eyebrow">Current state · 31 August 2026</div>
         <h1 id="page-title">A factory for better agent harnesses.</h1>
         <p class="hero-lead">Fluid-Harness is the lab around an AI agent—not the agent brain itself. It proposes bounded designs, builds fresh candidates, tests them, keeps the evidence, and lets only verified data inform the next round. An archived proposal can be replayed, but only a fresh test can earn adoption.</p>
         <div class="hero-meta">
@@ -660,7 +660,7 @@
 
       <aside class="hero-visual" aria-label="Verified checkpoint summary">
         <div class="visual-label">Acceptance ledger</div>
-        <div class="visual-number">541/541</div>
+        <div class="visual-number">545/545</div>
         <p class="visual-caption">Marked gates met at the current public checkpoint. This measures the implemented contract—not the distance to artificial general intelligence.</p>
         <div class="metric-row">
           <div class="metric"><span class="metric-label">Tests</span><span class="metric-value">75 / 75</span></div>
@@ -815,7 +815,7 @@
         <article class="feature">
           <div class="item-top"><span class="item-icon" aria-hidden="true">↺</span><span class="state-label">Live</span></div>
           <h3 class="item-title">Retry unfinished exploration</h3>
-          <p class="item-copy">Count archived replay attempts per proposal batch, keep a batch whose replay adopted nothing in a first-in-first-out backlog, re-dispatch it through the same receipted bridge, and credit only architectures a generation actually evaluated.</p>
+          <p class="item-copy">Count archived replay attempts per proposal batch, give never-attempted work a turn before retries, rotate equally attempted batches by archive age, and credit only architectures a generation actually evaluated.</p>
           <code class="signal-label">replayAttemptCount</code>
         </article>
         <article class="feature">

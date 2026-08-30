@@ -185,21 +185,21 @@ const backlog = factory.researchAgenda().items.filter((item) => item.target === 
 assert.equal(backlog.length, 2);
 assert.deepEqual(
   backlog.map((item) => item.archive.sequence),
-  [failingBatch.archive.sequence, youngerBatch.archive.sequence]
+  [youngerBatch.archive.sequence, failingBatch.archive.sequence]
 );
 assert.equal(
   backlog[0].benchmark.replayAttemptCount,
-  2,
-  'the longest-waiting unfinished exploration heads the backlog'
+  0,
+  'never-attempted exploration gets a turn before a retry'
 );
-assert.equal(backlog[1].benchmark.replayAttemptCount, 0);
+assert.equal(backlog[1].benchmark.replayAttemptCount, 2);
 const youngerPlan = factory.researchPlan().plans.filter(
   (candidate) => candidate.target === REPLAY
 );
 assert.equal(youngerPlan.length, 2);
 assert.deepEqual(youngerPlan.map((candidate) => candidate.archive.sequence), [
-  failingBatch.archive.sequence,
-  youngerBatch.archive.sequence
+  youngerBatch.archive.sequence,
+  failingBatch.archive.sequence
 ]);
 
 assert.equal(Object.isFrozen(requeued[0]), true);
