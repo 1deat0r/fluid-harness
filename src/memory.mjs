@@ -1453,6 +1453,7 @@ function harnessFactoryArchitectureProposalReplayOutcomeMemoryEntries(ledger, pr
       `archived-batches-${group.batchCount}`,
       `replayed-batches-${group.replayedBatchCount}`,
       `unreplayed-batches-${group.batchCount - group.replayedBatchCount}`,
+      `replay-attempts-${group.replays.length}`,
       `adopted-replays-${group.adoptedReplayCount}`,
       `rejected-replays-${group.rejectedReplayCount}`,
       `attributed-replays-${group.attributedReplayCount}`,

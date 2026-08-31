@@ -9,7 +9,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=ℹ duration_ms 259.447782 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=ℹ duration_ms 242.385009 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -19,7 +19,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_SOURCE_OK files=568 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_SOURCE_OK files=573 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -44,7 +44,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.169},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.262},{"
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.102},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.215},{"
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2755,3 +2755,28 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
   CHECK: node scripts/check-harness-factory-architecture-proposal-replay-exhaustion-authority-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_AUTHORITY_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_EXHAUSTION_AUTHORITY_BOUNDARY_OK forgedLimitRejected=true forgedCountRejected=true forgedStatusRejected=true stalePlanRejected=true foreignRejected=true accessorRejected=true tamperedReject
+
+- [x] G551: proposal replay attempt outcomes preserve every archived retry in chronological order with exact per-batch attempt ordinals instead of collapsing history to the latest replay
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempt-outcome.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_OK attempts=4 batches=2 ordinals=1>1>2>3 chronological=true batchLatest=3 dataOnly=true authorityTransferred=false verify=true
+
+- [x] G552: replay attempt outcomes derive adoption, attribution, holdout, comparator, and downstream-improvement measurements independently for each exact replay generation and aggregate them by attempt
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempt-outcome-measurement.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_MEASUREMENT_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_MEASUREMENT_OK attempts=3 adopted=3 attributed=3 validated=1 outcomes=NO_COMPARATOR>UNCHANGED>COMPARATOR_MISMATCH downstream=1 gains=0 adoptionRate=1 gainRate=0 verify=true
+
+- [x] G553: the attempt-outcome report is factory-scoped, frozen, capped, deterministic, and identical after verified ledger serialization and restoration
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempt-outcome-report.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_REPORT_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_REPORT_OK considered=27 returned=24 batches=9 max=24 truncated=true chronological=true frozen=true deterministic=true roundTrip=true verify=true
+
+- [x] G554: observed-only replay-outcome memory records the exact archived attempt count for a fresh proposer without exposing replay artifacts or authority
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempt-outcome-memory.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_MEMORY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_MEMORY_OK attempts=replay-attempts-3 batches=replayed-batches-1 rejected=rejected-replays-3 evidence=OBSERVED historicalOnly=true dataOnly=true authorityTransferred=false fr
+
+- [x] G555: attempt-level replay outcomes reject forged reports, inconsistent ordinals and aggregates, foreign factories, proxies, accessors, and tampered ledgers without mutation or authority transfer
+  CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempt-outcome-authority-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_AUTHORITY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_AUTHORITY_BOUNDARY_OK forgedRejected=true ordinalRejected=true aggregateRejected=true foreignScoped=true proxyRejected=true accessorRejected=true tamperedRejected=true ledge
