@@ -14,10 +14,12 @@ import {
 } from './process-boundary.mjs';
 import {
   arrayForEach,
+  arrayFilter,
   arrayFind,
   arrayIncludes,
   arrayIsArray,
   arrayMap,
+  arrayPush,
   arraySlice,
   arraySome,
   isPlainObject,
@@ -130,11 +132,64 @@ function researchSummary(researchContext) {
   if (sourceCountTotal !== normalizedResearchContext.resultCount) {
     throw new TypeError('Agent architecture proposal research context source counts are invalid');
   }
+  const provenanceInput = arrayIsArray(normalizedResearchContext.results)
+    ? arrayMap(
+      arrayFilter(
+        normalizedResearchContext.results,
+        (result) => result?.provenance !== null && result?.provenance !== undefined
+      ),
+      ({ provenance }) => provenance
+    )
+    : normalizedResearchContext.provenance ?? [];
+  if (!arrayIsArray(provenanceInput)) {
+    throw new TypeError('Agent architecture proposal research provenance is invalid');
+  }
+  let provenance = objectFreeze(arrayMap(provenanceInput, (locator) => {
+    if (
+      !isPlainObject(locator)
+      || objectKeys(locator).length !== 3
+      || !arrayIncludes(objectKeys(locator), 'hash')
+      || !arrayIncludes(objectKeys(locator), 'kind')
+      || !arrayIncludes(objectKeys(locator), 'sequence')
+      || typeof locator.hash !== 'string'
+      || stringTrim(locator.hash) === ''
+      || typeof locator.kind !== 'string'
+      || stringTrim(locator.kind) === ''
+      || !isSafeInteger(locator.sequence)
+      || locator.sequence <= 0
+    ) {
+      throw new TypeError('Agent architecture proposal research provenance is invalid');
+    }
+    return objectFreeze({
+      hash: locator.hash,
+      kind: locator.kind,
+      sequence: locator.sequence
+    });
+  }));
+  const provenanceKeys = arrayMap(
+    provenance,
+    ({ hash, kind, sequence }) => `${kind}:${sequence}:${hash}`
+  );
+  if (setSize(setFromArray(provenanceKeys)) !== provenance.length) {
+    if (!arrayIsArray(normalizedResearchContext.results)) {
+      throw new TypeError('Agent architecture proposal research provenance is duplicated');
+    }
+    const seenProvenance = [];
+    provenance = objectFreeze(arrayFilter(provenance, (_locator, index) => {
+      const key = provenanceKeys[index];
+      if (arrayIncludes(seenProvenance, key)) {
+        return false;
+      }
+      arrayPush(seenProvenance, key);
+      return true;
+    }));
+  }
   return objectFreeze({
     source: normalizedResearchContext.source,
     query: normalizedResearchContext.query,
     sourceCounts,
     resultCount: normalizedResearchContext.resultCount,
+    provenance,
     dataOnly: true,
     historicalOnly: true,
     authorityTransferred: false

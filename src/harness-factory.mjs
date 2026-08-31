@@ -219,6 +219,7 @@ export const MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_ENTRIES = 
 export const MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_ENTRIES
   = MAX_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_OUTCOME_ENTRIES
     * MAX_HARNESS_FACTORY_ARCHIVED_PROPOSAL_REPLAY_ATTEMPTS;
+export const MAX_HARNESS_FACTORY_SELF_DESIGN_RESEARCH_RESULTS = 16;
 
 const FACTORY_OPTIONS_KEYS = objectFreeze([
   'factoryId',
@@ -258,6 +259,23 @@ const ARCHIVED_PROPOSAL_MANUFACTURE_OPTIONS_KEYS = objectFreeze([
   'agentContext',
   'agentReproduction',
   'toolRegistry'
+]);
+const SELF_DESIGN_MANUFACTURE_OPTIONS_KEYS = objectFreeze([
+  'goal',
+  'plannerCandidates',
+  'cases',
+  'productionBudget',
+  'researchBudget',
+  'skepticBudget',
+  'holdoutCases',
+  'holdoutProductionBudget',
+  'holdoutResearchBudget',
+  'holdoutSkepticBudget',
+  'agentGoal',
+  'agentContext',
+  'agentReproduction',
+  'toolRegistry',
+  'maxMemoryEntries'
 ]);
 const ARCHITECTURE_PROPOSAL_OPTIONS_KEYS = objectFreeze([
   'goal',
@@ -5270,6 +5288,9 @@ function factoryGenerationMetadata({
   if (holdoutMetadata !== null) {
     metadata.holdout = holdoutMetadata;
   }
+  if (discovery.proposalReport.researchContext !== null) {
+    metadata.researchContext = discovery.proposalReport.researchContext;
+  }
   return objectFreeze(metadata);
 }
 
@@ -8620,11 +8641,35 @@ function harnessFactoryArchitectureProposalResearchSummary(researchContext) {
       'Harness Factory architecture proposal research context source counts are invalid'
     );
   }
+  const provenanceInput = normalized.provenance ?? [];
+  if (!arrayIsArray(provenanceInput) || provenanceInput.length > normalized.resultCount) {
+    throw new TypeError(
+      'Harness Factory architecture proposal research provenance is invalid'
+    );
+  }
+  const provenance = objectFreeze(arrayMap(provenanceInput, (locator) => {
+    if (
+      !isPlainObject(locator)
+      || !hasExactKeys(locator, ['hash', 'kind', 'sequence'])
+      || typeof locator.hash !== 'string'
+      || stringTrim(locator.hash) === ''
+      || typeof locator.kind !== 'string'
+      || stringTrim(locator.kind) === ''
+      || !isSafeInteger(locator.sequence)
+      || locator.sequence <= 0
+    ) {
+      throw new TypeError(
+        'Harness Factory architecture proposal research provenance is invalid'
+      );
+    }
+    return objectFreeze({ ...locator });
+  }));
   return objectFreeze({
     source: normalized.source,
     query: normalized.query,
     sourceCounts: normalized.sourceCounts,
     resultCount: normalized.resultCount,
+    provenance,
     dataOnly: true,
     historicalOnly: true,
     authorityTransferred: false
@@ -11198,6 +11243,90 @@ export class HarnessFactory {
 
   manufacture(options = {}) {
     return manufactureFactory(this, options);
+  }
+
+  selfDesignAndManufacture(options = {}) {
+    requireDataObject(
+      options,
+      'Harness Factory self-design manufacture options',
+      SELF_DESIGN_MANUFACTURE_OPTIONS_KEYS
+    );
+    if (!isTrustedHarnessFactory(this)) {
+      throw new TypeError('Harness Factory requires an exact trusted factory');
+    }
+    const {
+      goal,
+      plannerCandidates,
+      cases,
+      productionBudget,
+      researchBudget,
+      skepticBudget,
+      holdoutCases = null,
+      holdoutProductionBudget = null,
+      holdoutResearchBudget = null,
+      holdoutSkepticBudget = null,
+      agentGoal,
+      agentContext = null,
+      agentReproduction = 'HarnessFactory.selfDesignAndManufacture',
+      toolRegistry = null,
+      maxMemoryEntries = MAX_STRUCTURED_MEMORY_ENTRIES
+    } = options;
+    const normalizedAgentGoal = requireNonEmptyString(
+      agentGoal,
+      'Harness Factory self-design agentGoal'
+    );
+    const historicalLedger = verifiedLedgerSnapshot(this.ledger);
+    const memory = memoryFromLedger({
+      ledger: historicalLedger,
+      maxEntries: maxMemoryEntries,
+      idPrefix: 'harness-factory-self-design'
+    });
+    const researchContext = buildStructuredMemoryContext({
+      memory,
+      query: {
+        limit: MAX_HARNESS_FACTORY_SELF_DESIGN_RESEARCH_RESULTS
+      }
+    });
+    if (researchContext.resultCount === 0) {
+      throw new Error(
+        'Harness Factory self-design requires verified ledger research'
+      );
+    }
+    if (
+      researchContext.results.length !== researchContext.resultCount
+      || arraySome(
+        researchContext.results,
+        ({ provenance }) => provenance === null
+          || arrayFind(
+            historicalLedger.records,
+            (record) => record.kind === provenance.kind
+              && record.sequence === provenance.sequence
+              && record.hash === provenance.hash
+          ) === undefined
+      )
+    ) {
+      throw new Error(
+        'Harness Factory self-design research requires exact ledger provenance'
+      );
+    }
+    return manufactureFactory(this, {
+      goal,
+      plannerCandidates,
+      cases,
+      productionBudget,
+      researchBudget,
+      skepticBudget,
+      researchContext,
+      holdoutCases,
+      holdoutProductionBudget,
+      holdoutResearchBudget,
+      holdoutSkepticBudget,
+      archive: true,
+      agentGoal: normalizedAgentGoal,
+      agentContext,
+      agentReproduction,
+      toolRegistry
+    });
   }
 
   manufactureFromArchivedProposals(proposalReport, options = {}) {

@@ -357,6 +357,36 @@ export function proposeArchitectureFromResearch({ plannerCandidateIds, researchC
   };
 }
 
+export function proposeSelfDesignedArchitecture({ plannerCandidateIds, researchContext }) {
+  const results = Array.isArray(researchContext?.results)
+    ? researchContext.results
+    : [];
+  const weaknessExposed = results.some((result) =>
+    Array.isArray(result?.keywords) && result.keywords.includes('weakness-exposed'));
+  const selectedIndex = weaknessExposed && plannerCandidateIds.length > 1 ? 1 : 0;
+  return {
+    proposals: [{
+      id: 'evidence-self-designed-architecture',
+      plannerCandidateId: plannerCandidateIds[selectedIndex],
+      policy: {
+        maxEpisodes: weaknessExposed ? 3 : 2,
+        maxToolCallsPerEpisode: 2
+      },
+      components: {
+        decision: weaknessExposed ? 'harden-against-observed-weakness' : 'baseline-design',
+        evidenceResultCount: researchContext?.resultCount ?? 0,
+        evidenceSourceCount: Array.isArray(researchContext?.sources)
+          ? researchContext.sources.length
+          : researchContext?.source === null || researchContext?.source === undefined
+            ? 0
+            : 1,
+        plannerSelection: selectedIndex,
+        researchSource: researchContext?.source ?? 'MULTI_SOURCE'
+      }
+    }]
+  };
+}
+
 export function proposeArchitectureFromFactoryArchive({ plannerCandidateIds, researchContext }) {
   const firstResult = Array.isArray(researchContext?.results)
     ? researchContext.results[0]

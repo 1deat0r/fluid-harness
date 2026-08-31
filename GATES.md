@@ -9,7 +9,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G1: all unit and integration tests pass
   CHECK: node scripts/run-tests.mjs
   EXPECT: FLUID_TESTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=ℹ duration_ms 242.385009 | FLUID_TESTS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=ℹ duration_ms 480.822546 | FLUID_TESTS_OK
 
 - [x] G2: the end-to-end graph demonstration executes and verifies a shortest path
   CHECK: node src/cli.mjs demo
@@ -19,7 +19,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G3: source files pass the repository's structural checks
   CHECK: node scripts/check-source.mjs
   EXPECT: FLUID_SOURCE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_SOURCE_OK files=573 root=.
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_SOURCE_OK files=579 root=.
 
 - [x] G4: caller-supplied verification cannot fabricate PROVEN evidence
   CHECK: node scripts/check-evidence-boundary.mjs
@@ -44,7 +44,7 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
 - [x] G8: scaling curves expose safe low-budget failure and proven sufficient-budget success
   CHECK: node src/cli.mjs scale-demo
   EXPECT: FLUID_SCALING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.102},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.215},{"
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output={"candidateId":"default-kernel","mode":"research","points":[{"levelId":"budget-1","computeUnits":1,"successRate":0,"provenRate":0,"elapsedMs":5.288},{"levelId":"budget-3","computeUnits":3,"successRate":0,"provenRate":0,"elapsedMs":1.41},{"l
 
 - [x] G9: the constitutional core enforces budgets, shutdown, and tamper-evident audit records
   CHECK: node scripts/check-constitution-boundary.mjs
@@ -2780,3 +2780,28 @@ EVIDENCE format: `exit` is the check exit code; `shell` and `cwd` are the execut
   CHECK: node scripts/check-harness-factory-architecture-proposal-replay-attempt-outcome-authority-boundary.mjs
   EXPECT: FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_AUTHORITY_BOUNDARY_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_ARCHITECTURE_PROPOSAL_REPLAY_ATTEMPT_OUTCOME_AUTHORITY_BOUNDARY_OK forgedRejected=true ordinalRejected=true aggregateRejected=true foreignScoped=true proxyRejected=true accessorRejected=true tamperedRejected=true ledge
+
+- [x] G556: the factory can retrieve bounded verified ledger research automatically and let a process-isolated architecture proposer choose a non-default registered planner and policy response from that evidence
+  CHECK: node scripts/check-harness-factory-self-design.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_SELF_DESIGN_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_SELF_DESIGN_OK research=1 source=DISTRIBUTION_SHIFT selectedPlanner=harness-factory-self-design-registered-planner nonDefault=true policyEpisodes=3 decision=harden-against-observed-weakness adopted=ADOPTED deployed=fal
+
+- [x] G557: an evidence-selected architecture still earns independent production, research, skeptic, replay, adoption, unseen-holdout, and fresh agent-run proof before the factory archives it
+  CHECK: node scripts/check-harness-factory-self-design-agent.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_SELF_DESIGN_AGENT_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_SELF_DESIGN_AGENT_OK primary=true replay=true adopted=ADOPTED holdout=PASSED agentBuilt=true completed=true proof=PROVEN archives=2>3 deployed=false verify=true
+
+- [x] G558: self-design fails before proposal execution or ledger mutation when no verified research exists, and research context alone cannot grant adoption, proof, deployment, or runtime authority
+  CHECK: node scripts/check-harness-factory-self-design-evidence-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_SELF_DESIGN_EVIDENCE_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_SELF_DESIGN_EVIDENCE_BOUNDARY_OK noEvidenceRejected=true ledgerAtomic=true research=1 status=REJECTED adopted=false proof=NONE agentBuilt=false deployed=false authorityTransferred=false verify=true
+
+- [x] G559: self-design decisions retain bounded source counts and exact ledger provenance in the archived discovery and remain deterministic after verified serialization and restoration
+  CHECK: node scripts/check-harness-factory-self-design-provenance.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_SELF_DESIGN_PROVENANCE_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_SELF_DESIGN_PROVENANCE_OK results=1 distributionShift=1 provenance=distribution-shift:1 frozen=true archived=true deterministic=true roundTrip=true verify=true
+
+- [x] G560: self-design rejects injected research contexts, archive suppression, unknown options, accessors, cycles, forged factories, untrusted tools, tampered evidence, and failed holdouts without exposing an agent or transferring authority
+  CHECK: node scripts/check-harness-factory-self-design-authority-boundary.mjs
+  EXPECT: FLUID_HARNESS_FACTORY_SELF_DESIGN_AUTHORITY_BOUNDARY_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/run/media/mustbearnold/Projects/AI Agents/Fluid-Harness; path=dc6d49436da1/39 entries; output=FLUID_HARNESS_FACTORY_SELF_DESIGN_AUTHORITY_BOUNDARY_OK researchInjectionRejected=true archiveSuppressionRejected=true unknownRejected=true accessorRejected=true cycleRejected=true toolRejected=true proxyRejected=true tamperedRejected=true
